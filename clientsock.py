@@ -4,8 +4,7 @@ import json
 from time import sleep
 import string
 import random
-from PIL import Image
-import StringIO
+
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -67,10 +66,10 @@ print(name)
 socket.send("gotname\r\n")
 f = open(name, 'w')
 
-l = socket.recv(1024)
-while l:
-    f.write(l)
-    l = socket.recv(1024)
+encoding = socket.recv(1024)
+while encoding:
+    f.write(encoding)
+    encoding = socket.recv(1024)
 
 print("File Written")
 f.close()
