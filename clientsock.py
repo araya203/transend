@@ -4,7 +4,8 @@ import json
 from time import sleep
 import string
 import random
-
+from PIL import Image
+import StringIO
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -27,7 +28,7 @@ def get_open_ports():
     for port in range(5001, 10000):
         if counter == 2:
             break
-        if (isOpen('172.16.4.108', port)):
+        if (isOpen('206.225.94.205', port)):
             ports.append(port)
             counter += 1
 
@@ -41,7 +42,7 @@ def post_request():
     }
     payload = {'port1': '{}'.format(ports[0]), 'port2': '{}'.format(ports[1])}
 
-    url = 'http://172.16.4.108:5000/todo/api/v1.0/tasks'
+    url = 'http://206.225.94.205:5000/todo/api/v1.0/tasks'
     response = requests.post(url, headers=headers, data=json.dumps(payload))
 
     response.raise_for_status()
@@ -53,22 +54,24 @@ ports = post_request()
 print(ports)
 socket = socket.socket()
 print(ports[0])
-socket.connect(("172.16.4.108", ports[0]))
+socket.connect(("206.225.94.205", ports[0]))
 
 print(ports[1])
 passw = id_generator()
 print(passw)
 socket.send(passw)
 
-#  Get the reply.
-f = open("newfile.txt",'wb') #open in binary
-while (True):
-    # recibimos y escribimos en el fichero
-    l = socket.recv(1024)
-    f.write(l)
 
-    if not l:
-        break
+name = socket.recv(1024)
+print(name)
+socket.send("gotname\r\n")
+f = open(name, 'w')
+
+l = socket.recv(1024)
+while l:
+    f.write(l)
+    l = socket.recv(1024)
+
 print("File Written")
 f.close()
 socket.close()

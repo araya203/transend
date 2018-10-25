@@ -15,8 +15,8 @@ socket_pc = socket.socket()
 socket_ph = socket.socket()
 socket_pc.bind(("", port1))
 socket_ph.bind(("", port2))
-socket_pc.listen(10) # Acepta hasta 10 conexiones entrantes.
-socket_ph.listen(10) # Acepta hasta 10 conexiones entrantes.
+socket_pc.listen(10)
+socket_ph.listen(10)
 
 pcsc, pcaddress = socket_pc.accept()
 print(pcaddress)
@@ -30,10 +30,16 @@ print(pass_from_phone)
 message = "Authorised\r\n" if pass_from_pc == pass_from_phone else "Denied\r\n"
 print(message)
 phsc.send(message)
+name = phsc.recv(1024)
+pcsc.send(name)
+confirm = pcsc.recv(1024)
+phsc.send(confirm)
 
 encoding = phsc.recv(1024)
-phsc.send("Recieved. Sending to PC\r\n")
-pcsc.send(encoding)
+while(encoding):
+	pcsc.send(encoding)
+	encoding = phsc.recv(1024)
+
 
 pcsc.close()
 phsc.close()
