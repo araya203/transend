@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transend</title>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.8/socket.io.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body>
+  <script type="text/javascript">
+	$(document).ready(function() {
+		var socket = io.connect('172.16.5.26:5000');
+		socket.on('file', function(filejson) {
+			var filename = filejson['filename'];
+			window.location.replace("http://172.16.5.26:5000/getfile/"+filename);
+		});
+	});
+  </script>
+
+    
+    <img src="{{ QR }}" alt="QR Code">
+</body>
+</html>
