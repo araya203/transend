@@ -4,26 +4,32 @@ import random
 import string
 import qrcode
 import os
+from config import read_properties_file
 
+conf = read_properties_file('static/config')
+ip = conf["ip_address"]
+port = conf["port"]
+
+print(ip, port)
 app = Flask(__name__)
 socketio = SocketIO(app)
-app.config['SERVER_NAME'] = '172.16.5.26:5000'
-QR_FOLDER = os.path.join('static', 'QR')
-app.config['QR_FOLDER'] = QR_FOLDER
-app.config['SECRET_KEY'] = 'mysecret'
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
+app.config['SERVER_NAME'] = ip + ":" + port
+QR_FOLDER = os.path.join('static', 'QR', id_generator()+".png")
+app.config['QR_FOLDER'] = QR_FOLDER
+app.config['SECRET_KEY'] = 'mysecret'
 
 sessions = {}
-qrpath = QR_FOLDER+"/QR"+id_generator()+".png"
+#/qrpath = QR_FOLDER+"/"+id_generator()+".png"
 @socketio.on('connect')
 def connected():
 	passwd = id_generator()
-	print(qrpath)
+	print(QR_FOLDER)
 	sessions[request.sid] = passwd
 	print(passwd, request.sid)
 	img = qrcode.make(passwd+" "+request.sid)
-	img.save(qrpath)
+	img.save(QR_FOLDER)
 	
 @socketio.on('authentication')
 def authorise(json):
@@ -31,8 +37,10 @@ def authorise(json):
     session_id = json['sessionid']
     print(password, session_id)
     if sessions[session_id] in password:
-	    payload = {"authorisation": "Authorised", "session_id": session_id}
-	    emit("decision", payload)
+        payload = {"authorisation": "Authorised", "session_id": session_id}
+    else:
+        payload = {"authorisation": "Denied", "session_id": session_id}
+    emit("decision", payload)
 
 @socketio.on('payload')
 def handle_content(json):
@@ -46,8 +54,8 @@ def handle_content(json):
 
 @app.route('/')
 def index():
-	print(qrpath)
-	return render_template('index2.html', QR=qrpath)
+	print(QR_FOLDER)
+	return render_template('index.html', QR=QR_FOLDER, IP=ip, PORT=port)
 
 
 @app.route('/getfile/<name>')
@@ -66,4 +74,4 @@ def get_output_file(name):
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='172.16.5.26', port=5000)
+    socketio.run(app, host=ip, port=port)
