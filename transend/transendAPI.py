@@ -1,5 +1,5 @@
 from flask import Flask, render_template, Response, request
-from flask_socketio import SocketIO, send,emit
+from flask_socketio import SocketIO, emit
 import random
 import string
 import qrcode
@@ -14,28 +14,28 @@ port = conf["port"]
 print(socket.gethostname())
 app = Flask(__name__)
 socketio = SocketIO(app)
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
-#app.config['SERVER_NAME'] = "206.225.94.205:5000"
-QR_FOLDER = os.path.join('static', 'QR')
-#app.config['QR_FOLDER'] = QR_FOLDER
+# app.config['SERVER_NAME'] = "206.225.94.205:5000"
 app.config['SECRET_KEY'] = 'mysecret'
 print(ip, port)
-
 sessions = {}
+
+
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
 
 @socketio.on('browserconnect')
 def connected():
-	qrpath = "static/QR/"+id_generator()+".png"
-	passwd = id_generator()
-	print(QR_FOLDER)
-	sessions[request.sid] = passwd
-	print("CONNECTED: " + request.sid)
-	print("CONNECTED: " + passwd)
-	payload = {"password": passwd, "sessionid": request.sid}
-	img = qrcode.make(payload)
-	img.save(qrpath)
-	emit("qrpath", {'QR': qrpath}, room=request.sid, broadcast=True)
+    qrpath = "static/QR/"+id_generator()+".png"
+    passwd = id_generator()
+    sessions[request.sid] = passwd
+    print("CONNECTED: " + request.sid)
+    print("CONNECTED: " + passwd)
+    payload = {"password": passwd, "sessionid": request.sid}
+    img = qrcode.make(payload)
+    img.save(qrpath)
+    emit("qrpath", {'QR': qrpath}, room=request.sid, broadcast=True)
+
 
 @socketio.on('authentication')
 def authorise(json):
@@ -49,31 +49,32 @@ def authorise(json):
     print(payload)
     emit("decision", payload)
 
+
 @socketio.on('payload')
 def handle_content(newdata):
-	print("HANDLE CONTENT")
-	session_id = newdata['sessionid'].encode('utf8')
-	filename = newdata['filename'].encode('utf8')
-	content = newdata['content']
-	print(session_id, filename)
-	if session_id not in sessions:
-		return
-	f = open(filename, 'w')
-	f.write(content)
-	emit("file", {'filename': filename}, room=session_id)
-	del sessions[session_id]
+    print("HANDLE CONTENT")
+    session_id = newdata['sessionid'].encode('utf8')
+    filename = newdata['filename'].encode('utf8')
+    content = newdata['content']
+    print(session_id, filename)
+    if session_id not in sessions:
+        return
+    f = open(filename, 'w')
+    f.write(content)
+    emit("file", {'filename': filename}, room=session_id)
+    del sessions[session_id]
+
 
 @app.route('/')
 def index():
-	print(QR_FOLDER)
-	return render_template('index.html', IP=ip, PORT=port)
+    return render_template('index.html', IP=ip, PORT=port)
 
 
 @app.route('/getfile/<name>')
 def get_output_file(name):
     file_name = os.path.join(name)
     if not os.path.isfile(file_name):
-       	return None
+        return None
     # read without gzip.open to keep it compressed
     with open(file_name, 'rb') as f:
         resp = Response(f.read())
@@ -85,4 +86,4 @@ def get_output_file(name):
 
 
 if __name__ == '__main__':
-	socketio.run(app, debug=True, host=ip, port=port)
+    socketio.run(app, debug=True, host=ip, port=port)
