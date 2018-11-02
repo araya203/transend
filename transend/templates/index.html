@@ -16,9 +16,17 @@
 	var ipport = "{{ IP }}" + ":" +  "{{ PORT }}";
         $(document).ready(function() {
                 var socket = io.connect(ipport);
+		console.log("CONNECTED");
+		socket.emit('browserconnect');
                 socket.on('file', function(filejson) {
                         var filename = filejson['filename'];
+			console.log(filename);
                         window.location.replace("http://"+ipport+"/getfile/"+filename);
+                });
+                socket.on('qrpath', function(qrjson) {
+                        var qrpath = qrjson['QR'];
+			console.log(qrpath);
+			$("#qrcodecontainer").append("<img src='"+qrpath+"'/>");
                 });
         });
   </script>
@@ -63,7 +71,8 @@
                         <div class="hero-copy">
                             <div class="container-sm">
                                 <h1 class="hero-title h2-mobile mt-0 is-revealing">Scan the QR Code to send!</h1>
-				<img src="{{ QR }}" alt="QR Code">
+				<div id="qrcodecontainer">
+				</div>
                             </div>
                         </div>
                         <div class="hero-illustration">
