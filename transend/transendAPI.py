@@ -18,17 +18,15 @@ ip = conf["ip_address"]
 port = conf["port"]
 app = Flask(__name__)
 socketio = SocketIO(app)
-# app.config['SERVER_NAME'] = "206.225.94.205:5000"
 app.config['SECRET_KEY'] = 'mysecret'
 sessions = {}
 
 logging.basicConfig(
-        filename='log/transend.log',
-        level='DEBUG',
-        format="[%(asctime)s.%(msecs)03d][%(levelname)s][%(module)s]-[%(funcName)s]: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
+    filename='log/transend.log',
+    level='DEBUG',
+    format="[%(asctime)s.%(msecs)03d][%(levelname)s][%(module)s]-[%(funcName)s]: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 def set_qrpath(unique_code):
     global qrpath
@@ -98,7 +96,7 @@ def handle_content(newdata):
 @app.route('/')
 def index():
     logging.info("Rendering template...")
-    return render_template('index.html', IP=ip, PORT=port)
+    return render_template('index.html')
 
 
 @app.route('/getfile/<name>')
@@ -122,6 +120,8 @@ def get_output_file(name):
     logging.info("Deleted %s", qrpath)
     return resp
 
+def run():
+    if __name__ == '__main__':
+        socketio.run(app, debug=True, host=ip, port=port)
 
-if __name__ == '__main__':
-    socketio.run(app, host=ip, port=port)
+run()

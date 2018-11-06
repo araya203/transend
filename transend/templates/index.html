@@ -13,7 +13,7 @@
 </head>
 <body class="is-boxed has-animations">
     <script type="text/javascript">
-	var ipport = "{{ IP }}" + ":" +  "{{ PORT }}";
+	var ipport = location.origin;
         $(document).ready(function() {
                 var socket = io.connect(ipport);
 		console.log("CONNECTED");
@@ -22,7 +22,7 @@
                         var filename = filejson['filename'];
 			console.log(filename);
 			$("#qrcodecontainer").children('img').attr('src', 'static/done.jpg');
-                        window.location.replace("http://"+ipport+"/getfile/"+filename);
+                        window.location.replace(ipport+"/getfile/"+filename);
                 });
                 socket.on('qrpath', function(qrjson) {
                         var qrpath = qrjson['QR'];
