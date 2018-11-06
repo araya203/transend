@@ -1,17 +1,20 @@
+#encoding: utf-8
+
 from flask import Flask, render_template, Response, request
 from flask_socketio import SocketIO, emit
 import random
 import string
 import qrcode
 import os
+import sys
 from config import read_properties_file
 import socket
 
-
+reload(sys)
+sys.setdefaultencoding("utf8")
 conf = read_properties_file('static/config')
 ip = conf["ip_address"]
 port = conf["port"]
-print(socket.gethostname())
 app = Flask(__name__)
 socketio = SocketIO(app)
 # app.config['SERVER_NAME'] = "206.225.94.205:5000"
@@ -19,6 +22,12 @@ app.config['SECRET_KEY'] = 'mysecret'
 print(ip, port)
 sessions = {}
 
+def set_qrpath(unique_code):
+    global qrpath
+    qrpath = "static/QR/"+unique_code+".png"
+
+def get_qrpath():
+    return qrpath
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -26,15 +35,15 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 @socketio.on('browserconnect')
 def connected():
-    qrpath = "static/QR/"+id_generator()+".png"
+    qrpath = set_qrpath(id_generator())
     passwd = id_generator()
     sessions[request.sid] = passwd
     print("CONNECTED: " + request.sid)
     print("CONNECTED: " + passwd)
     payload = {"password": passwd, "sessionid": request.sid}
     img = qrcode.make(payload)
-    img.save(qrpath)
-    emit("qrpath", {'QR': qrpath}, room=request.sid, broadcast=True)
+    img.save(get_qrpath())
+    emit("qrpath", {'QR': get_qrpath()}, room=request.sid, broadcast=True)
 
 
 @socketio.on('authentication')
@@ -48,6 +57,10 @@ def authorise(json):
         payload = {"authorisation": "Denied", "session_id": session_id}
     print(payload)
     emit("decision", payload)
+
+@socketio.on('sendingstatus')
+def isloading(json):
+    emit("loading", {'isloading': True}, room=json['sessionid'])
 
 
 @socketio.on('payload')
@@ -82,6 +95,7 @@ def get_output_file(name):
     resp.headers["Content-Disposition"] = "attachment; filename={0}".format(file_name)
     resp.headers["Content-type"] = "application/octet-stream"
     os.remove(file_name)
+    os.remove(qrpath)
     return resp
 
 
