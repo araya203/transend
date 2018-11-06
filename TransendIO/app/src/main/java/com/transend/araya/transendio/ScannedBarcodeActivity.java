@@ -25,7 +25,6 @@ import java.io.IOException;
 public class ScannedBarcodeActivity extends AppCompatActivity {
 
     SurfaceView surfaceView;
-    TextView txtBarcodeValue;
     private BarcodeDetector barcodeDetector;
     private CameraSource cameraSource;
     private static final int REQUEST_CAMERA_PERMISSION = 201;
@@ -44,7 +43,6 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        txtBarcodeValue = findViewById(R.id.txtBarcodeValue);
         surfaceView = findViewById(R.id.surfaceView);
     }
 
@@ -93,30 +91,19 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
         barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
             @Override
             public void release() {
-                Toast.makeText(getApplicationContext(), "To prevent memory leaks barcode scanner has been stopped", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Barcode Scanner stopped", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void receiveDetections(Detector.Detections<Barcode> detections) {
                 final SparseArray<Barcode> barcodes = detections.getDetectedItems();
                 if (barcodes.size() != 0) {
+                    intentData = barcodes.valueAt(0).displayValue;
+                    Intent intent = new Intent();
 
-
-                    txtBarcodeValue.post(new Runnable() {
-
-                        @Override
-                        public void run() {
-
-                            intentData = barcodes.valueAt(0).displayValue;
-                            Intent intent = new Intent();
-                            txtBarcodeValue.setText(intentData);
-
-                            intent.putExtra("scanned_data", intentData);
-                            setResult(RESULT_OK, intent);
-                            finish();
-                        }
-                    });
-
+                    intent.putExtra("scanned_data", intentData);
+                    setResult(RESULT_OK, intent);
+                    finish();
                 }
             }
         });
