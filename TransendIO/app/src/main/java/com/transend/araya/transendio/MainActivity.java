@@ -1,10 +1,16 @@
 package com.transend.araya.transendio;
 
 import android.Manifest;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
+import android.support.v4.content.CursorLoader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -31,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -51,6 +58,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+                handleSendFile(intent);
+        }
 
         filebutton = findViewById(R.id.buttonFiles);
 
@@ -58,6 +72,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
         }
         filebutton.setOnClickListener(this);
+    }
+
+    void handleSendFile(Intent intent) {
+        String uri = intent.getParcelableExtra(Intent.EXTRA_STREAM).toString();
+
+        Uri fileUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+
+        if (uri != null) {
+
+            fileName =  getRealPathFromURI(fileUri);
+            Log.d("SHAREDFILE2:", fileName);
+
+            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+        }
+    }
+
+    private String getRealPathFromURI(Uri contentURI) {
+        String result;
+        Cursor cursor = getContentResolver().query(contentURI, null, null, null, null);
+        if (cursor == null) { // Source is Dropbox or other similar local file path
+            result = contentURI.getPath();
+        } else {
+            cursor.moveToFirst();
+            int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA);
+            result = cursor.getString(idx);
+            cursor.close();
+        }
+        return result;
     }
 
     @Override
@@ -115,6 +157,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                     if(message.contains("Authorised")) {
+                        JSONObject sendingJson = new JSONObject();
+                        try {
+                            sendingJson.put("sessionid", session_id);
+                            sendingJson.put("status", true);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        mSocket.emit("sendingstatus", sendingJson);
                         byte bytes[] = new byte[2048];
                         File file = new File(fileName);
                         FileInputStream fileStream = null;
@@ -122,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         try {
                             fileStream = new FileInputStream(file);
                             BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
-
+                            String filename = file.getName();
                             JSONObject json = new JSONObject();
                             json.put("sessionid", session_id);
                             json.put("filename", file.getName());
