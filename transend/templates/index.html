@@ -22,7 +22,7 @@
                 socket.on('file', function(filejson) {
                         var filename = filejson['filename'];
 			console.log(filename);
-			$("#qrcodecontainer").children('img').attr('src', 'static/done.jpg');
+			$("#qrcodecontainer").children('img').attr('src', "{{ url_for('static', filename='done.jpg') }}");
                         window.location.replace("http://transendtest.com/getfile/"+filename);
                 });
                 socket.on('qrpath', function(qrjson) {

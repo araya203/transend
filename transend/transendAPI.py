@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #encoding: utf-8
 
 from flask import Flask, render_template, Response, request
@@ -13,7 +14,8 @@ import socket
 
 reload(sys)
 sys.setdefaultencoding("utf8")
-conf = read_properties_file('static/config')
+
+conf = read_properties_file(os.path.join('transend/transend/static/config'))
 ip = conf["ip_address"]
 port = conf["port"]
 app = Flask(__name__)
@@ -22,7 +24,7 @@ app.config['SECRET_KEY'] = 'mysecret'
 sessions = {}
 
 logging.basicConfig(
-    filename='log/transend.log',
+    filename='/home/ec2-user/transend/transend/log/transend.log',
     level='DEBUG',
     format="[%(asctime)s.%(msecs)03d][%(levelname)s][%(module)s]-[%(funcName)s]: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -47,7 +49,7 @@ def connected():
     sessions[request.sid] = passwd
     payload = {"password": passwd, "sessionid": request.sid}
     img = qrcode.make(payload)
-    img.save(get_qrpath())
+    img.save("/home/ec2-user/transend/transend/"+get_qrpath())
     emit("qrpath", {'QR': get_qrpath()}, room=request.sid, broadcast=True)
     logging.info("Emitted QR path: %s on session_id: %s", get_qrpath(), request.sid)
 
@@ -84,7 +86,8 @@ def handle_content(newdata):
     if session_id not in sessions:
         logging.error("Session Expired: %s", session_id)
         return
-    f = open(filename, 'w')
+    fullpath = os.path.join("/home/ec2-user/transend/transend/static/downloads/",filename)
+    f = open(fullpath, 'w')
     f.write(content)
     logging.info("Wrote file successfully")
     emit("file", {'filename': filename}, room=session_id)
@@ -101,7 +104,8 @@ def index():
 
 @app.route('/getfile/<name>')
 def get_output_file(name):
-    file_name = os.path.join(name)
+    file_name = os.path.join("/home/ec2-user/transend/transend/static/downloads/",name)
+    print(file_name)
     if not os.path.isfile(file_name):
 	logging.error("%s is not a file", file_name)
         return None
@@ -111,12 +115,12 @@ def get_output_file(name):
     with open(file_name, 'rb') as f:
         resp = Response(f.read())
     # set headers to tell encoding and to send as an attachment
-    resp.headers["Content-Disposition"] = "attachment; filename={0}".format(file_name)
+    resp.headers["Content-Disposition"] = "attachment; filename={0}".format(name)
     resp.headers["Content-type"] = "application/octet-stream"
     logging.info("Downloaded Successfully")
-    os.remove(file_name)
+#    os.remove(file_name)
     logging.info("Deleted %s", file_name)
-    os.remove(qrpath)
+    os.remove("/home/ec2-user/transend/transend/"+qrpath)
     logging.info("Deleted %s", qrpath)
     return resp
 
