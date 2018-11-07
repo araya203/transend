@@ -2,6 +2,7 @@ package com.transend.araya.transendio;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -31,16 +32,24 @@ import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
+    private static final int BUFFER = 1024;
     private Socket mSocket;
     {
         try {
@@ -65,6 +74,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (Intent.ACTION_SEND.equals(action) && type != null) {
                 handleSendFile(intent);
         }
+        else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
+            handleSendMultipleFiles(intent); // Handle multiple images being sent
+        }
 
         filebutton = findViewById(R.id.buttonFiles);
 
@@ -88,6 +100,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    void handleSendMultipleFiles(Intent intent) {
+        ArrayList<Uri> fileUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+        if (fileUris != null) {
+            zip(getInfoFromURIArray(fileUris), getApplicationContext().getFilesDir().getPath().toString() +"MyZip.zip");
+            fileName = getApplicationContext().getFilesDir().getPath().toString() +"MyZip.zip";
+            Log.d("Filename:", fileName);
+        }
+        startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+    }
+
+    public void zip(ArrayList<String> _files, String zipFileName) {
+        try {
+            BufferedInputStream origin = null;
+            FileOutputStream dest = new FileOutputStream(zipFileName);
+            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
+                    dest));
+            byte data[] = new byte[BUFFER];
+
+            for (int i = 0; i < _files.size(); i++) {
+                Log.v("Compress", "Adding: " + _files.get(i));
+                FileInputStream fi = new FileInputStream(_files.get(i));
+                origin = new BufferedInputStream(fi, BUFFER);
+
+                ZipEntry entry = new ZipEntry(_files.get(i).substring(_files.get(i).lastIndexOf("/") + 1));
+                out.putNextEntry(entry);
+                int count;
+
+                while ((count = origin.read(data, 0, BUFFER)) != -1) {
+                    out.write(data, 0, count);
+                }
+                origin.close();
+            }
+
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private String getRealPathFromURI(Uri contentURI) {
         String result;
         Cursor cursor = getContentResolver().query(contentURI, null, null, null, null);
@@ -100,6 +151,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             cursor.close();
         }
         return result;
+    }
+
+    private String getRealNameFromURI(Uri contentURI) {
+        String result;
+        Cursor cursor = getContentResolver().query(contentURI, null, null, null, null);
+        if (cursor == null) { // Source is Dropbox or other similar local file path
+            result = contentURI.getPath();
+        } else {
+            cursor.moveToFirst();
+            int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.TITLE);
+            result = cursor.getString(idx);
+            cursor.close();
+        }
+        return result;
+    }
+
+    private ArrayList<String> getInfoFromURIArray(ArrayList<Uri> Uris) {
+        ArrayList<String> results = new ArrayList<>();
+        for (int i=0; i<Uris.size(); i++) {
+            Log.d("Multiple SHared:", getRealPathFromURI(Uris.get(i)));
+            results.add(getRealPathFromURI(Uris.get(i)));
+        }
+        return results;
     }
 
     @Override
@@ -185,6 +259,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             byte[] mybytearray = baos.toByteArray();
                             json.put("content", mybytearray);
                             mSocket.emit("payload", json);
+                            fileName = "";
 
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();

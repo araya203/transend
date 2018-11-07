@@ -68,6 +68,12 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
                     } else {
                         ActivityCompat.requestPermissions(ScannedBarcodeActivity.this, new
                                 String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+                        if (ActivityCompat.checkSelfPermission(ScannedBarcodeActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                            cameraSource.start(surfaceView.getHolder());
+                        }
+                        else {
+                            finish();
+                        }
                     }
 
                 } catch (IOException e) {
