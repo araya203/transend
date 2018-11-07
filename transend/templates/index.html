@@ -13,16 +13,17 @@
 </head>
 <body class="is-boxed has-animations">
     <script type="text/javascript">
-	var ipport = location.origin;
+	var ipport = "35.177.107.250";
+	console.log(ipport);
         $(document).ready(function() {
-                var socket = io.connect(ipport);
+                var socket = io.connect();
 		console.log("CONNECTED");
 		socket.emit('browserconnect');
                 socket.on('file', function(filejson) {
                         var filename = filejson['filename'];
 			console.log(filename);
 			$("#qrcodecontainer").children('img').attr('src', 'static/done.jpg');
-                        window.location.replace(ipport+"/getfile/"+filename);
+                        window.location.replace("http://transendtest.com/getfile/"+filename);
                 });
                 socket.on('qrpath', function(qrjson) {
                         var qrpath = qrjson['QR'];
