@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Socket mSocket;
     {
         try {
-            mSocket = IO.socket("http://206.225.94.205:5000");
+            mSocket = IO.socket("http://transendtest.com");
             Log.d("connection", "CONNECTED");
         } catch (URISyntaxException e) {}
     }
