@@ -63,7 +63,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     TextView textView;
-    String fileName;
     Button filebutton;
     public  static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
 
@@ -73,37 +72,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        String type = intent.getType();
+        checkPermissions();
 
-        if (Intent.ACTION_SEND.equals(action) && type != null) {
-                handleSendFile(intent);
-        }
-        else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
-            handleSendMultipleFiles(intent); // Handle multiple files being sent
+        Intent intent = getIntent();
+
+        FileName.tryFilePathFromAction(getApplicationContext(), intent);
+        String fileName = FileName.getFilePath();
+
+        if (fileName != null) {
+            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
         }
 
         filebutton = findViewById(R.id.buttonFiles);
-
-
-
-        checkAndroidVersion();
         filebutton.setOnClickListener(this);
     }
 
-    private void checkAndroidVersion() {
+    private void checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkPermission();
-
-        } else {
-            // write your logic here
+            invokePermissionCheck();
         }
-
     }
 
     @SuppressLint("NewApi")
-    private void checkPermission() {
+    private void invokePermissionCheck() {
         if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) +
                 checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
 
@@ -134,96 +125,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    void handleSendFile(Intent intent) {
-        String uri = intent.getParcelableExtra(Intent.EXTRA_STREAM).toString();
-
-        Uri fileUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-
-        if (uri != null) {
-
-            fileName =  getRealPathFromURI(fileUri);
-            Log.d("SHAREDFILE2:", fileName);
-
-            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
-        }
-    }
-
-    void handleSendMultipleFiles(Intent intent) {
-        ArrayList<Uri> fileUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
-        if (fileUris != null) {
-            zip(getInfoFromURIArray(fileUris), getApplicationContext().getFilesDir().getPath().toString() +"MyZip.zip");
-            fileName = getApplicationContext().getFilesDir().getPath().toString() +"MyZip.zip";
-            Log.d("Filename:", fileName);
-        }
-        startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
-    }
-
-    public void zip(ArrayList<String> _files, String zipFileName) {
-        try {
-            BufferedInputStream origin = null;
-            FileOutputStream dest = new FileOutputStream(zipFileName);
-            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
-                    dest));
-            byte data[] = new byte[BUFFER];
-
-            for (int i = 0; i < _files.size(); i++) {
-                Log.v("Compress", "Adding: " + _files.get(i));
-                FileInputStream fi = new FileInputStream(_files.get(i));
-                origin = new BufferedInputStream(fi, BUFFER);
-
-                ZipEntry entry = new ZipEntry(_files.get(i).substring(_files.get(i).lastIndexOf("/") + 1));
-                out.putNextEntry(entry);
-                int count;
-
-                while ((count = origin.read(data, 0, BUFFER)) != -1) {
-                    out.write(data, 0, count);
-                }
-                origin.close();
-            }
-
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private String getRealPathFromURI(Uri contentURI) {
-        String result;
-        Cursor cursor = getContentResolver().query(contentURI, null, null, null, null);
-        if (cursor == null) { // Source is Dropbox or other similar local file path
-            result = contentURI.getPath();
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA);
-            result = cursor.getString(idx);
-            cursor.close();
-        }
-        return result;
-    }
-
-    private String getRealNameFromURI(Uri contentURI) {
-        String result;
-        Cursor cursor = getContentResolver().query(contentURI, null, null, null, null);
-        if (cursor == null) { // Source is Dropbox or other similar local file path
-            result = contentURI.getPath();
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Files.FileColumns.TITLE);
-            result = cursor.getString(idx);
-            cursor.close();
-        }
-        return result;
-    }
-
-    private ArrayList<String> getInfoFromURIArray(ArrayList<Uri> Uris) {
-        ArrayList<String> results = new ArrayList<>();
-        for (int i=0; i<Uris.size(); i++) {
-            Log.d("Multiple SHared:", getRealPathFromURI(Uris.get(i)));
-            results.add(getRealPathFromURI(Uris.get(i)));
-        }
-        return results;
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 //        super.onActivityResult(requestCode, resultCode, data);
@@ -231,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (requestCode == 1000 && resultCode == RESULT_OK) {
             String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
             Log.d("filePath", filePath);
-            fileName = filePath;
+            FileName.setFilePath(filePath);
             startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
         }
         if(requestCode == 999 && resultCode == RESULT_OK) {
@@ -303,8 +204,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             e.printStackTrace();
                         }
                         mSocket.emit("sendingstatus", sendingJson);
-                        byte bytes[] = new byte[2048];
-                        File file = new File(fileName);
+                        File file = new File(FileName.getFilePath());
                         FileInputStream fileStream = null;
 
                         try {
@@ -323,7 +223,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             byte[] mybytearray = baos.toByteArray();
                             json.put("content", mybytearray);
                             mSocket.emit("payload", json);
-                            fileName = "";
 
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();

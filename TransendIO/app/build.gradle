@@ -35,4 +35,11 @@ dependencies {
     implementation 'com.nbsp:library:1.8'
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.google.android.gms:play-services-vision:11.8.0'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.0.1'
+    implementation group: 'org.apache.tika', name: 'tika-core', version: '1.0'
+    implementation group: 'javax.activation', name: 'activation', version: '1.1'
+
+
+
+
 }
