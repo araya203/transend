@@ -1,6 +1,7 @@
 package com.transend.araya.transendio;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +12,9 @@ import android.os.Build;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.CursorLoader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -61,6 +65,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView textView;
     String fileName;
     Button filebutton;
+    public  static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,15 +81,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 handleSendFile(intent);
         }
         else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
-            handleSendMultipleFiles(intent); // Handle multiple images being sent
+            handleSendMultipleFiles(intent); // Handle multiple files being sent
         }
 
         filebutton = findViewById(R.id.buttonFiles);
 
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
-        }
+
+
+        checkAndroidVersion();
         filebutton.setOnClickListener(this);
+    }
+
+    private void checkAndroidVersion() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkPermission();
+
+        } else {
+            // write your logic here
+        }
+
+    }
+
+    @SuppressLint("NewApi")
+    private void checkPermission() {
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) +
+                checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+
+            if (shouldShowRequestPermissionRationale
+                    (Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                    shouldShowRequestPermissionRationale
+                            (Manifest.permission.CAMERA)) {
+
+                Snackbar.make(findViewById(android.R.id.content),
+                        "Please Grant Permissions to upload profile photo",
+                        Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
+                        new View.OnClickListener() {
+                            @SuppressLint("NewApi")
+                            @Override
+                            public void onClick(View v) {
+                                requestPermissions(
+                                        new String[]{Manifest.permission
+                                                .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                                        PERMISSIONS_MULTIPLE_REQUEST);
+                            }
+                        }).show();
+            } else {
+                requestPermissions(
+                        new String[]{Manifest.permission
+                                .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                        PERMISSIONS_MULTIPLE_REQUEST);
+            }
+        }
     }
 
     void handleSendFile(Intent intent) {
@@ -199,18 +247,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     }
-
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+
         switch (requestCode) {
-            case 1001: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show();
-                    finish();
+            case PERMISSIONS_MULTIPLE_REQUEST:
+                if (grantResults.length > 0) {
+                    boolean cameraPermission = grantResults[1] == PackageManager.PERMISSION_GRANTED;
+                    boolean writeExternalFile = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+
+                    if (!(writeExternalFile && cameraPermission)) {
+                        Snackbar.make(findViewById(android.R.id.content),
+                                "Please grant permissions be able to use this app properly",
+                                Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
+                                new View.OnClickListener() {
+                                    @SuppressLint("NewApi")
+                                    @Override
+                                    public void onClick(View v) {
+                                        requestPermissions(
+                                                new String[]{Manifest.permission
+                                                        .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                                                PERMISSIONS_MULTIPLE_REQUEST);
+                                    }
+                                }).show();
+
+                    }
+                    break;
                 }
-            }
         }
     }
 

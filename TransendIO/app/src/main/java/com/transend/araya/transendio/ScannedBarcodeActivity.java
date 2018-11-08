@@ -5,8 +5,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -38,7 +40,6 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_barcode);
-
         initViews();
     }
 
@@ -68,12 +69,7 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
                     } else {
                         ActivityCompat.requestPermissions(ScannedBarcodeActivity.this, new
                                 String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
-                        if (ActivityCompat.checkSelfPermission(ScannedBarcodeActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            cameraSource.start(surfaceView.getHolder());
-                        }
-                        else {
-                            finish();
-                        }
+                        finish();
                     }
 
                 } catch (IOException e) {
@@ -114,7 +110,6 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
             }
         });
     }
-
 
     @Override
     protected void onPause() {
