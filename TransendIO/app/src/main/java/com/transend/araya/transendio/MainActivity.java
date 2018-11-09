@@ -2,6 +2,7 @@ package com.transend.araya.transendio;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -58,7 +59,7 @@ import java.util.zip.ZipOutputStream;
 import static android.webkit.URLUtil.isValidUrl;
 import static com.transend.araya.transendio.FileName.zip;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends Activity implements View.OnClickListener{
 
     private static final int BUFFER = 1024;
     private Socket mSocket;
@@ -69,8 +70,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (URISyntaxException e) {}
     }
 
-    TextView textView;
-    Button filebutton;
+    Button fileChooser;
     EditText linkUrl;
     Button sendLink;
 
@@ -84,10 +84,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        filebutton = findViewById(R.id.chooseFile);
-        linkUrl = findViewById(R.id.linkUrl);
+        fileChooser = findViewById(R.id.fileChooser);
+        linkUrl = findViewById(R.id.urlText);
         sendLink = findViewById(R.id.sendLink);
-        filebutton.setOnClickListener(this);
+        fileChooser.setOnClickListener(this);
         sendLink.setOnClickListener(this);
 
         checkPermissions();
@@ -160,20 +160,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//
-//        if (requestCode == 1000 && resultCode == RESULT_OK) {
-//            String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
-//            Log.d("filePath", filePath);
-//            FileName.setFilePath(filePath);
-//            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
-//        }
-
         if (requestCode == READ_REQUEST_CODE && resultCode == RESULT_OK) {
-            // The document selected by the user won't be returned in the intent.
-            // Instead, a URI to that document will be contained in the return intent
-            // provided to this method as a parameter.
-            // Pull that URI using resultData.getData().
+
             Uri uri = null;
             if (data != null) {
                 uri = data.getData();
@@ -198,24 +186,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     FileName.setFilePath(uriGetter.getUriRealPath(getApplicationContext(), uri));
                     startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
                 }
-//                if (clipData.getItemCount() < 1) {
-//                    ArrayList<Uri> uris = new ArrayList<Uri>();
-//                    for (int i = 0; i < clipData.getItemCount(); i++) {
-//                        uris.add(clipData.getItemAt(i).getUri());
-//                        Log.d("URIS:", uri.toString());
-//                    }
-//                    String zipfileName = getApplicationContext().getFilesDir() +"/"+ new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".zip";
-//                    if (uris != null) {
-//                        zip(uriGetter.getInfoFromURIArray(getApplicationContext(), uris), zipfileName);
-//                    }
-//                    FileName.setFilePath(zipfileName);
-//                }
-//                else {
-//                    FileName.setFilePath(uriGetter.getUriRealPath(getApplicationContext(), uri));
-//                }
-//                FileName.setFilePath(uriGetter.getUriRealPath(getApplicationContext(),uri));
-
-//                startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
             }
         }
         if(requestCode == 999 && resultCode == RESULT_OK) {
@@ -224,8 +194,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try {
                 json = new JSONObject(auth);
                 sendData(json);
-                textView = (TextView)findViewById(R.id.textView);
-                textView.setText("Sent!");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -316,6 +284,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 json.put("content", mybytearray);
                             }
                             mSocket.emit("payload", json);
+                            FileName.setFilePath("");
+                            linkUrl.setText("");
                         }
                         catch (FileNotFoundException e) {
                                 e.printStackTrace();
@@ -342,27 +312,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.chooseFile:
-                // ACTION_OPEN_DOCUMENT is the intent to choose a file via the system's file
-                // browser.
+            case R.id.fileChooser:
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-
-                // Filter to only show results that can be "opened", such as a
-                // file (as opposed to a list of contacts or timezones)
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                // Filter to show only images, using the image MIME data type.
-                // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
-                // To search for all documents available via installed storage providers,
-                // it would be "*/*".
                 intent.setType("*/*");
-
                 startActivityForResult(intent, READ_REQUEST_CODE);
-//                new MaterialFilePicker()
-//                        .withActivity(MainActivity.this)
-//                        .withRequestCode(1000)
-//                        .withHiddenFiles(true) // Show hidden files and folders
-//                        .start();
+
             case R.id.sendLink:
                 if (!linkUrl.getText().toString().matches("")) {
                     startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class), 999);
