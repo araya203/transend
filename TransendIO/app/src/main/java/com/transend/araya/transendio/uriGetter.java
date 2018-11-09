@@ -40,26 +40,6 @@ public class uriGetter {
     {
 
         String ret = "";
-        Log.d("IS SAMSUNG?", Boolean.toString(isSamsungPhoto(uri.toString())));
-//        Log.d("URI to string:", uri.toString());
-//        Log.d("URI getPath:", uri.getPath());
-//        Log.d("URI getAuthority:", uri.getAuthority());
-//        Log.d("URI to getPathSegments:", uri.getPathSegments().toString());
-//        Log.d("getEncodedAuthority:", uri.getEncodedAuthority());
-//        Log.d("getEncodedFragment:", uri.getEncodedFragment());
-//        Log.d("URI to getEncodedPath:", uri.getEncodedPath());
-//        Log.d("URI to getEncodedQuery:", uri.getEncodedQuery());
-//        Log.d("getEncodedSchemeSpecif:", uri.getEncodedSchemeSpecificPart());
-//        Log.d("URI getEncodedUserInfo:", uri.getEncodedUserInfo());
-//        Log.d("URI to getFragment:", uri.getFragment());
-//        Log.d("URI to getHost:", uri.getHost());
-//        Log.d("URI getLastPathSegment:", uri.getLastPathSegment());
-//        Log.d("URI to getQuery:", uri.getQuery());
-//        Log.d("URI to getScheme:", uri.getScheme());
-//        Log.d("getQueryParameterNames:", uri.getQueryParameterNames().toString());
-
-
-
         if(ctx != null && uri != null) {
             Log.d("URI:",uri.getAuthority());
             Log.d("SCHEME:",uri.getScheme());
