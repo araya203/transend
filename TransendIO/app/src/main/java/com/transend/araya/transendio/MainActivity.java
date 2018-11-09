@@ -22,6 +22,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -54,6 +55,7 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static android.webkit.URLUtil.isValidUrl;
 import static com.transend.araya.transendio.FileName.zip;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
@@ -69,6 +71,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     TextView textView;
     Button filebutton;
+    EditText linkUrl;
+    Button sendLink;
+
     public  static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
     private static final int READ_REQUEST_CODE = 42;
 
@@ -79,19 +84,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        filebutton = findViewById(R.id.chooseFile);
+        linkUrl = findViewById(R.id.linkUrl);
+        sendLink = findViewById(R.id.sendLink);
+        filebutton.setOnClickListener(this);
+        sendLink.setOnClickListener(this);
+
         checkPermissions();
 
         Intent intent = getIntent();
 
-        FileName.tryFilePathFromAction(getApplicationContext(), intent);
-        String fileName = FileName.getFilePath();
+        if ("text/plain".equals(intent.getType())) {
+            Bundle extras = getIntent().getExtras();
+            String url = extras.getString(Intent.EXTRA_TEXT);
+            Log.d("URL", url);
+            if (url != null && isValidUrl(url)) {
+                linkUrl.setText(url);
+            }
+            else {
+                Snackbar.make(findViewById(android.R.id.content),
+                        "Not a valid URL",
+                        Snackbar.LENGTH_SHORT).show();
+            }
+        }
+        else {
+            FileName.tryFilePathFromAction(getApplicationContext(), intent);
+            String fileName = FileName.getFilePath();
 
-        if (fileName != null) {
-            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+            if (fileName != null) {
+                startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class), 999);
+            }
         }
 
-        filebutton = findViewById(R.id.buttonFiles);
-        filebutton.setOnClickListener(this);
+
+
     }
 
     private void checkPermissions() {
@@ -261,33 +287,44 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             e.printStackTrace();
                         }
                         mSocket.emit("sendingstatus", sendingJson);
-                        File file = new File(FileName.getFilePath());
-                        FileInputStream fileStream = null;
 
+                        String url = linkUrl.getText().toString();
                         try {
-                            fileStream = new FileInputStream(file);
-                            BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
-                            String filename = file.getName();
                             JSONObject json = new JSONObject();
-                            json.put("sessionid", session_id);
-                            json.put("filename", file.getName());
-
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            int byteToBeRead = -1;
-                            while((byteToBeRead = fileBuffer.read())!=-1){
-                                baos.write(byteToBeRead);
+                            if (!url.matches("")) {
+                                json.put("sessionid", session_id);
+                                json.put("url", url);
                             }
-                            byte[] mybytearray = baos.toByteArray();
-                            json.put("content", mybytearray);
-                            mSocket.emit("payload", json);
+                            else {
+                                File file = new File(FileName.getFilePath());
+                                FileInputStream fileStream = null;
 
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
+
+                                fileStream = new FileInputStream(file);
+                                BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
+                                String filename = file.getName();
+
+                                json.put("sessionid", session_id);
+                                json.put("filename", file.getName());
+
+                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                                int byteToBeRead = -1;
+                                while ((byteToBeRead = fileBuffer.read()) != -1) {
+                                    baos.write(byteToBeRead);
+                                }
+                                byte[] mybytearray = baos.toByteArray();
+                                json.put("content", mybytearray);
+                            }
+                            mSocket.emit("payload", json);
+                        }
+                        catch (FileNotFoundException e) {
+                                e.printStackTrace();
                         }
                         catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                                e.printStackTrace();
+                        }
+                        catch (JSONException e) {
+                                e.printStackTrace();
                         }
                     }
                 }
@@ -305,7 +342,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.buttonFiles:
+            case R.id.chooseFile:
                 // ACTION_OPEN_DOCUMENT is the intent to choose a file via the system's file
                 // browser.
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -326,6 +363,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                        .withRequestCode(1000)
 //                        .withHiddenFiles(true) // Show hidden files and folders
 //                        .start();
+            case R.id.sendLink:
+                if (!linkUrl.getText().toString().matches("")) {
+                    startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class), 999);
+                }
                 break;
         }
     }
