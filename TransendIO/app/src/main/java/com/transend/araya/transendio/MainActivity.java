@@ -2,6 +2,7 @@ package com.transend.araya.transendio;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -45,11 +46,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static com.transend.araya.transendio.FileName.zip;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -65,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView textView;
     Button filebutton;
     public  static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
+    private static final int READ_REQUEST_CODE = 42;
+
 
 
     @Override
@@ -128,12 +135,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 //        super.onActivityResult(requestCode, resultCode, data);
+//
+//        if (requestCode == 1000 && resultCode == RESULT_OK) {
+//            String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
+//            Log.d("filePath", filePath);
+//            FileName.setFilePath(filePath);
+//            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+//        }
 
-        if (requestCode == 1000 && resultCode == RESULT_OK) {
-            String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
-            Log.d("filePath", filePath);
-            FileName.setFilePath(filePath);
-            startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+        if (requestCode == READ_REQUEST_CODE && resultCode == RESULT_OK) {
+            // The document selected by the user won't be returned in the intent.
+            // Instead, a URI to that document will be contained in the return intent
+            // provided to this method as a parameter.
+            // Pull that URI using resultData.getData().
+            Uri uri = null;
+            if (data != null) {
+                uri = data.getData();
+                try {
+                    ClipData clipData = null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+                        clipData = data.getClipData();
+                    }
+                    ArrayList<Uri> uris = new ArrayList<Uri>();
+                    for (int i = 0; i < clipData.getItemCount(); i++) {
+                        uris.add(clipData.getItemAt(i).getUri());
+                    }
+                    String zipfileName = getApplicationContext().getFilesDir() + "/" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".zip";
+                    if (uris != null) {
+                        zip(uriGetter.getInfoFromURIArray(getApplicationContext(), uris), zipfileName);
+                    }
+                    FileName.setFilePath(zipfileName);
+                    startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class), 999);
+
+                }
+                catch (Exception e){
+                    FileName.setFilePath(uriGetter.getUriRealPath(getApplicationContext(), uri));
+                    startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+                }
+//                if (clipData.getItemCount() < 1) {
+//                    ArrayList<Uri> uris = new ArrayList<Uri>();
+//                    for (int i = 0; i < clipData.getItemCount(); i++) {
+//                        uris.add(clipData.getItemAt(i).getUri());
+//                        Log.d("URIS:", uri.toString());
+//                    }
+//                    String zipfileName = getApplicationContext().getFilesDir() +"/"+ new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".zip";
+//                    if (uris != null) {
+//                        zip(uriGetter.getInfoFromURIArray(getApplicationContext(), uris), zipfileName);
+//                    }
+//                    FileName.setFilePath(zipfileName);
+//                }
+//                else {
+//                    FileName.setFilePath(uriGetter.getUriRealPath(getApplicationContext(), uri));
+//                }
+//                FileName.setFilePath(uriGetter.getUriRealPath(getApplicationContext(),uri));
+
+//                startActivityForResult(new Intent(MainActivity.this, ScannedBarcodeActivity.class),999);
+            }
         }
         if(requestCode == 999 && resultCode == RESULT_OK) {
             String auth = data.getStringExtra("scanned_data");
@@ -249,11 +306,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.buttonFiles:
-                new MaterialFilePicker()
-                        .withActivity(MainActivity.this)
-                        .withRequestCode(1000)
-                        .withHiddenFiles(true) // Show hidden files and folders
-                        .start();
+                // ACTION_OPEN_DOCUMENT is the intent to choose a file via the system's file
+                // browser.
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+
+                // Filter to only show results that can be "opened", such as a
+                // file (as opposed to a list of contacts or timezones)
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                // Filter to show only images, using the image MIME data type.
+                // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
+                // To search for all documents available via installed storage providers,
+                // it would be "*/*".
+                intent.setType("*/*");
+
+                startActivityForResult(intent, READ_REQUEST_CODE);
+//                new MaterialFilePicker()
+//                        .withActivity(MainActivity.this)
+//                        .withRequestCode(1000)
+//                        .withHiddenFiles(true) // Show hidden files and folders
+//                        .start();
                 break;
         }
     }

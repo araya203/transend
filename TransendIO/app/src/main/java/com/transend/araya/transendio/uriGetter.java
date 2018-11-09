@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 
 import java.io.ByteArrayInputStream;
@@ -64,93 +65,98 @@ public class uriGetter {
             Log.d("SCHEME:",uri.getScheme());
 
             try {
-                if(isContentUri(uri))
+                if(isGooglePhotoDoc(uri.getAuthority()))
                 {
-                    if(isGooglePhotoDoc(uri.getAuthority()))
-                    {
-                        ret = uri.getLastPathSegment();
-                    }
-                    else if(isGoogleDriveDoc(uri.getAuthority())) {
-                        Cursor cursor = null;
-                        final String column = "_display_name";
-                        final String[] projection = {
-                                column
-                        };
+                    ret = uri.getLastPathSegment();
+                }
+                else if(isGoogleDriveDoc(uri.getAuthority())) {
 
-                        try {
-                            cursor = ctx.getContentResolver().query(uri, projection, null, null, null);
+                    Cursor cursor = null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+                        cursor = ctx.getContentResolver()
+                                .query(uri, null, null, null, null, null);
+                    }
+
+                    try {
+
+                        if (cursor != null && cursor.moveToFirst()) {
+
+                            // Note it's called "Display Name".  This is
+                            // provider-specific, and might not necessarily be the file name.
+
                             Log.d("GOOGLE DRIVE NAME: ", "HERE");
-                            if (cursor != null && cursor.moveToFirst()) {
-                                final int column_index = cursor.getColumnIndexOrThrow(column);
+                                final int column_index = cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME);
                                 ret = makeFileFromContentURI(ctx, uri, cursor.getString(column_index));
                                 Log.d("GOOGLE DRIVE NAME: ", ret);
 
-                            }
-                        } finally {
-                            if (cursor != null)
-                                cursor.close();
                         }
+                    } finally {
+                        if (cursor != null)
+                            cursor.close();
                     }
-                    else {
-                        ret = getImageRealPath(ctx.getContentResolver(), uri, null);
-                    }
-                }else if(isFileUri(uri)) {
-                    ret = uri.getPath();
                 }
-                else if(isDocumentUri(ctx, uri)) {
 
-                    // Get uri related document id.
+                else if (isMediaDoc(uri.getAuthority())) {
                     @SuppressLint("NewApi")
                     String documentId = DocumentsContract.getDocumentId(uri);
+                    String idArr[] = documentId.split(":");
+                    if (idArr.length == 2) {
+                        // First item is document type.
+                        String docType = idArr[0];
 
-                    // Get uri authority.
-                    String uriAuthority = uri.getAuthority();
+                        // Second item is document real id.
+                        String realDocId = idArr[1];
 
-                    if (isMediaDoc(uriAuthority)) {
-                        String idArr[] = documentId.split(":");
-                        if (idArr.length == 2) {
-                            // First item is document type.
-                            String docType = idArr[0];
-
-                            // Second item is document real id.
-                            String realDocId = idArr[1];
-
-                            // Get content uri by document type.
-                            Uri mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                            if ("image".equals(docType)) {
-                                mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                            } else if ("video".equals(docType)) {
-                                mediaContentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-                            } else if ("audio".equals(docType)) {
-                                mediaContentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                            }
-
-                            // Get where clause with real document id.
-                            String whereClause = MediaStore.Images.Media._ID + " = " + realDocId;
-
-                            ret = getImageRealPath(ctx.getContentResolver(), mediaContentUri, whereClause);
+                        // Get content uri by document type.
+                        Uri mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                        if ("image".equals(docType)) {
+                            mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                        } else if ("video".equals(docType)) {
+                            mediaContentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+                        } else if ("audio".equals(docType)) {
+                            mediaContentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
                         }
 
-                    } else if (isDownloadDoc(uriAuthority)) {
-                        // Build download uri.
-                        Uri downloadUri = Uri.parse("content://downloads/public_downloads");
+                        // Get where clause with real document id.
+                        String whereClause = MediaStore.Images.Media._ID + " = " + realDocId;
 
-                        // Append download document id at uri end.
-                        Uri downloadUriAppendId = ContentUris.withAppendedId(downloadUri, Long.valueOf(documentId));
+                        ret = getImageRealPath(ctx.getContentResolver(), mediaContentUri, whereClause);
+                    }
 
-                        ret = getImageRealPath(ctx.getContentResolver(), downloadUriAppendId, null);
+                }
 
-                    } else if (isExternalStoreDoc(uriAuthority)) {
-                        String idArr[] = documentId.split(":");
-                        if (idArr.length == 2) {
-                            String type = idArr[0];
-                            String realDocId = idArr[1];
+                else if (isDownloadDoc(uri.getAuthority())) {
+                    Log.d("DownloadDOC:", "HERE");
+                    Cursor c = ctx.getContentResolver().query(uri, null, null, null, null);
+                    if (c != null && c.moveToFirst()) {
+                        int id = c.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                        if (id != -1) {
+                            ret = makeFileFromContentURI(ctx, uri, c.getString(id));
 
-                            if ("primary".equalsIgnoreCase(type)) {
-                                ret = Environment.getExternalStorageDirectory() + "/" + realDocId;
-                            }
                         }
                     }
+
+
+//                    ret = getImageRealPath(ctx.getContentResolver(), uri, null);
+
+                }
+
+                else if (isExternalStoreDoc(uri.getAuthority())) {
+                    @SuppressLint("NewApi")
+                    String documentId = DocumentsContract.getDocumentId(uri);
+                    String idArr[] = documentId.split(":");
+                    if (idArr.length == 2) {
+                        String type = idArr[0];
+                        String realDocId = idArr[1];
+
+                        if ("primary".equalsIgnoreCase(type)) {
+                            ret = Environment.getExternalStorageDirectory() + "/" + realDocId;
+                        }
+                    }
+                }
+
+                else {
+                    ret = getImageRealPath(ctx.getContentResolver(), uri, null);
                 }
             }
             catch (IllegalStateException e) {
@@ -262,7 +268,7 @@ public class uriGetter {
     {
         boolean ret = false;
 
-        if("com.google.android.apps.docs.storage.legacy".equals(uriAuthority))
+        if(uriAuthority.contains("com.google.android.apps.docs.storage"))
         {
             ret = true;
         }
