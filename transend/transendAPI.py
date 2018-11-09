@@ -118,7 +118,7 @@ def get_output_file(name):
     resp.headers["Content-Disposition"] = "attachment; filename={0}".format(name)
     resp.headers["Content-type"] = "application/octet-stream"
     logging.info("Downloaded Successfully")
-#    os.remove(file_name)
+    os.remove(file_name)
     logging.info("Deleted %s", file_name)
     os.remove("/home/ec2-user/transend/transend/"+qrpath)
     logging.info("Deleted %s", qrpath)
