@@ -10,6 +10,10 @@ $(document).ready(function() {
                 $("#qrcodecontainer").children('img').attr('src', 'static/images/done.jpg');
                 window.location.replace("http://transendtest.com/getfile/"+filename);
         });
+	socket.on('link', function(urljson) {
+		var url = urljson['url'];
+		document.location = url;
+	});
         socket.on('qrpath', function(qrjson) {
                 var qrpath = qrjson['QR'];
                 console.log(qrpath);

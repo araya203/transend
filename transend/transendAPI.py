@@ -77,21 +77,28 @@ def isloading(json):
 
 
 @socketio.on('payload')
-def handle_content(newdata):
-    logging.info("Got request to write payload")
-    session_id = newdata['sessionid'].encode('utf8')
-    filename = newdata['filename'].encode('utf8')
-    logging.info("Attempting to write file %s", filename)
-    content = newdata['content']
-    if session_id not in sessions:
-        logging.error("Session Expired: %s", session_id)
-        return
-    fullpath = os.path.join("/home/ec2-user/transend/transend/static/downloads/",filename)
-    f = open(fullpath, 'w')
-    f.write(content)
-    logging.info("Wrote file successfully")
-    emit("file", {'filename': filename}, room=session_id)
-    logging.info("Emitted file %s", filename)
+def handle_content(payload):
+    if "url" in payload:
+        url = payload['url']
+	logging.info("Got URL")
+    	session_id = payload['sessionid'].encode('utf8')
+    	emit("link", {'url': url}, room=session_id)
+	logging.info("Emitted URL %s", url)
+    else:
+	    logging.info("Got request to write payload")
+	    session_id = payload['sessionid'].encode('utf8')
+	    filename = payload['filename'].encode('utf8')
+	    logging.info("Attempting to write file %s", filename)
+	    content = payload['content']
+	    if session_id not in sessions:
+	        logging.error("Session Expired: %s", session_id)
+	        return
+	    fullpath = os.path.join("/home/ec2-user/transend/transend/static/downloads/",filename)
+	    f = open(fullpath, 'w')
+	    f.write(content)
+	    logging.info("Wrote file successfully")
+	    emit("file", {'filename': filename}, room=session_id)
+	    logging.info("Emitted file %s", filename)
     del sessions[session_id]
     logging.info("Deleted session %s", session_id)
 
