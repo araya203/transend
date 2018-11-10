@@ -64,7 +64,6 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="137dp"
         android:scaleType="fitXY"
-        android:src="@drawable/nex"
 
 
         android:text="TAKE" />

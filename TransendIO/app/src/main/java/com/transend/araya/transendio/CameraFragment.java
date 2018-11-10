@@ -1,15 +1,8 @@
 package com.transend.araya.transendio;
 
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -20,8 +13,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
@@ -34,16 +25,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.io.IOException;
 
 import static android.app.Activity.RESULT_OK;
-import static android.content.ContentValues.TAG;
 
 public class CameraFragment extends Fragment implements View.OnClickListener{
 
@@ -63,15 +50,12 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
         View view = inflater.inflate(R.layout.camerapreview, null);
         takePhoto = view.findViewById(R.id.takepicture);
         takePhoto.setOnClickListener(this);
 
         return view;
     }
-
-
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -100,6 +84,24 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
                 e.printStackTrace();
             }
         }
+    }
+
+    private void startCameraIntent(){
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
+        Intent intent = new Intent();
+        intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        String newfileName = "IMG_" +
+                new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) +
+                ".jpg";
+        String outPath = "/sdcard/" + newfileName;
+        File outFile = new File(outPath);
+
+        mCameraFileName = outFile.toString();
+        Uri outuri = Uri.fromFile(outFile);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, outuri);
+        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
     }
 
     private Emitter.Listener onNewMessage = new Emitter.Listener() {
@@ -178,21 +180,7 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.takepicture:
-                StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-                StrictMode.setVmPolicy(builder.build());
-                Intent intent = new Intent();
-                intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
-
-                String newfileName = "IMG_" +
-                        new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) +
-                        ".jpg";
-                String outPath = "/sdcard/" + newfileName;
-                File outFile = new File(outPath);
-
-                mCameraFileName = outFile.toString();
-                Uri outuri = Uri.fromFile(outFile);
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, outuri);
-                startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
+                startCameraIntent();
                 break;
         }
     }

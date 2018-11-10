@@ -2,7 +2,6 @@ package com.transend.araya.transendio;
 
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -15,16 +14,11 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Log;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringWriter;
-import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,9 +26,6 @@ import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.tika.Tika;
-
-import javax.activation.MimetypesFileTypeMap;
-
 
 public class uriGetter {
     private static String getUriRealPathAboveKitkat(Context ctx, Uri uri)

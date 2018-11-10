@@ -67,6 +67,6 @@
         android:text="SEND"
 
 
-        android:src="@drawable/nex" />
+         />
 
 </RelativeLayout>

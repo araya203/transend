@@ -74,7 +74,6 @@
 
 
         android:scaleType="fitXY"
-        android:src="@drawable/nex"
         android:text="SEND" />
 
 </RelativeLayout>
