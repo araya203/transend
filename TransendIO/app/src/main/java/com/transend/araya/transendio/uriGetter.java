@@ -28,6 +28,7 @@ import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.tika.Tika;
@@ -185,6 +186,59 @@ public class uriGetter {
             e.printStackTrace();
         }
         return ret;
+    }
+
+    public static Uri bitmapToUriConverter(Context ctx, Bitmap mBitmap) {
+        Uri uri = null;
+        try {
+            final BitmapFactory.Options options = new BitmapFactory.Options();
+            // Calculate inSampleSize
+            options.inSampleSize = calculateInSampleSize(options, 100, 100);
+
+            // Decode bitmap with inSampleSize set
+            options.inJustDecodeBounds = false;
+            Bitmap newBitmap = Bitmap.createScaledBitmap(mBitmap, 200, 200,
+                    true);
+            File file = new File(ctx.getFilesDir(), "Image"
+                    + new Random().nextInt() + ".jpeg");
+            FileOutputStream out = ctx.openFileOutput(file.getName(),
+                    Context.MODE_PRIVATE);
+            newBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+            //get absolute path
+            String realPath = file.getAbsolutePath();
+            File f = new File(realPath);
+            uri = Uri.fromFile(f);
+
+        } catch (Exception e) {
+            Log.e("Your Error Message", e.getMessage());
+        }
+        return uri;
+    }
+
+
+    public static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
     }
 
     /* Check whether this uri represent a document or not. */
