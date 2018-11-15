@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #encoding: utf-8
 
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response, request, jsonify
 from flask_socketio import SocketIO, emit
 import logging
 import random
@@ -32,16 +32,20 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+
 def make_qrpath(qr_name):
     return "static/QR/"+qr_name+".png"
+
 
 def set_qrpath(unique_code):
     global qrpath
     qrpath = "static/QR/"+unique_code+".png"
     logging.debug("QR Path: %s", qrpath)
 
+
 def get_qrpath():
     return qrpath
+
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -119,6 +123,8 @@ def handle_content(payload):
         del sessions[session_id]
         logging.info("Deleted session %s", session_id)
 
+	emit("filewritten", {'written':True})
+
 
 @app.route('/getfile/<session>/<file_name>')
 def get_output_file(session, file_name):
@@ -126,7 +132,7 @@ def get_output_file(session, file_name):
     file_path = file_dir+"/"+file_name
     if not os.path.isfile(file_path):
         logging.error("%s is not a file", file_path)
-        return None
+        
     logging.info("Attempting to download %s", file_path)
 
     with open(file_path, 'rb') as f:
@@ -146,6 +152,26 @@ def get_output_file(session, file_name):
 def index():
     logging.info("Rendering template...")
     return render_template('index.html')
+
+@app.route('/test')
+def test():
+    logging.info("Rendering template...")
+    return render_template('test.html')
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(403)
+def page_not_found(e):
+    return render_template('403.html'), 403
+
+
+@app.errorhandler(410)
+def page_not_found(e):
+    return render_template('410.html'), 410
 
 
 def run():
