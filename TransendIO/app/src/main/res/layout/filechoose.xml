@@ -24,10 +24,8 @@
                 android:layout_height="match_parent"
                 android:layout_alignParentStart="true"
                 android:layout_alignParentTop="true"
-                android:layout_marginTop="0dp"
                 android:scaleType="centerCrop"
-                android:src="@drawable/card1"
-                android:layout_alignParentLeft="true" />
+                android:src="@drawable/card1" />
 
 
             <ImageView
@@ -62,11 +60,31 @@
         android:layout_height="50dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="137dp"
+        android:layout_marginBottom="141dp"
         android:scaleType="fitXY"
         android:text="SEND"
 
 
-         />
+        />
+
+    <TextView
+        android:id="@+id/statusMessage"
+        android:layout_width="149dp"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/fileChooser"
+        android:layout_centerHorizontal="true"
+        android:text="Processing..."
+        android:textAlignment="center"
+        android:textSize="18sp"
+        android:visibility="invisible" />
+
+    <ProgressBar
+        android:id="@+id/percentage"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="216dp"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/fileChooser"
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible" />
 
 </RelativeLayout>

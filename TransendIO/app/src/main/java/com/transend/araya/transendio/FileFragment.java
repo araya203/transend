@@ -1,8 +1,11 @@
 package com.transend.araya.transendio;
 
+import android.app.AlertDialog;
 import android.content.ClipData;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -12,11 +15,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
-import com.transend.araya.transendio.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import static android.app.Activity.RESULT_OK;
+import static android.content.ContentValues.TAG;
 import static com.transend.araya.transendio.FileName.zip;
 
 public class FileFragment extends Fragment implements View.OnClickListener{
@@ -47,13 +51,35 @@ public class FileFragment extends Fragment implements View.OnClickListener{
     }
 
     Button chooseFile;
+    ProgressBar progressBar;
+    TextView statusMessage;
+
+
+    AlertDialog.Builder builder1;
+
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view =  inflater.inflate(R.layout.filechoose, null);
 
+        progressBar = (ProgressBar)view.findViewById(R.id.percentage);
+        statusMessage = (TextView)view.findViewById(R.id.statusMessage);
         chooseFile = (Button)view.findViewById(R.id.fileChooser);
+        builder1 = new AlertDialog.Builder(getActivity());
+        builder1.setMessage("File downloaded!");
+        builder1.setCancelable(true);
+
+        builder1.setPositiveButton(
+                "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+//                        txtPercentage.setVisibility(View.INVISIBLE);
+                        dialog.cancel();
+                    }
+                });
         chooseFile.setOnClickListener(this);
+
         Bundle args = getArguments();
         if (args != null) {
             String fileName = args.getString("filename").toString();
@@ -65,9 +91,122 @@ public class FileFragment extends Fragment implements View.OnClickListener{
         return view;
     }
 
+    private class processFiles extends AsyncTask<String, Integer, JSONObject> {
+        @Override
+        protected void onPreExecute() {
+            // setting progress bar to zero
+//            progressBar.setProgress(0);
+            chooseFile.setVisibility(View.INVISIBLE);
+            statusMessage.setVisibility(View.VISIBLE);
+            progressBar.setVisibility(View.VISIBLE);
+
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            // Making progress bar visible
+
+            // updating progress bar value
+//            progressBar.setProgress(progress[0]);
+
+            // updating percentage value
+//            txtPercentage.setText(String.valueOf(progress[0]) + "%");
+        }
+
+        @Override
+        protected JSONObject doInBackground(String... params) {
+            return packageFiles(params[0]);
+        }
+
+        private JSONObject packageFiles(String session_id) {
+            JSONObject json = null;
+            try {
+
+                json = new JSONObject();
+
+                File file = new File(FileName.getFilePath());
+                FileInputStream fileStream = null;
 
 
-    private Emitter.Listener onNewMessage = new Emitter.Listener() {
+                fileStream = new FileInputStream(file);
+                BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
+                String filename = file.getName();
+
+                json.put("sessionid", session_id);
+                json.put("filename", file.getName());
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                int byteToBeRead = -1;
+                long totalLength = file.length();
+                double lengthPerPercent = 100.0 / totalLength;
+                int readLength = 0;
+                int prog = 0;
+
+
+                Log.d("TOTAL LENGTH", Long.toString(totalLength));
+                while ((byteToBeRead = fileBuffer.read()) != -1) {
+                    baos.write(byteToBeRead);
+                    readLength++;
+//                    prog = ((int) Math.round(lengthPerPercent * readLength));
+//                    publishProgress(prog);
+                }
+                byte[] mybytearray = baos.toByteArray();
+                json.put("content", mybytearray);
+                FileName.setFilePath("");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return json;
+
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject result) {
+            Log.e(TAG, "Response from server: " + result);
+
+            // showing the server response in an alert dialog
+            mSocket.emit("payload", result);
+
+            super.onPostExecute(result);
+        }
+
+    }
+
+    private Emitter.Listener onFileWritten = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        JSONObject data = (JSONObject) args[0];
+                        boolean written;
+                        try {
+                            written = data.getBoolean("written");
+                        } catch (JSONException e) {
+                            return;
+                        }
+
+                        if (written) {
+                            progressBar.setVisibility(View.INVISIBLE);
+                            statusMessage.setVisibility(View.INVISIBLE);
+                            chooseFile.setVisibility(View.VISIBLE);
+                            AlertDialog alert11 = builder1.create();
+                            alert11.show();
+                        }
+                    }
+                });
+            }
+        }
+    };
+
+    private Emitter.Listener onPayloadReceived = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
             if (getActivity() != null) {
@@ -93,37 +232,8 @@ public class FileFragment extends Fragment implements View.OnClickListener{
                                 e.printStackTrace();
                             }
                             mSocket.emit("sendingstatus", sendingJson);
+                            new processFiles().execute(session_id);
 
-                            try {
-                                JSONObject json = new JSONObject();
-
-                                File file = new File(FileName.getFilePath());
-                                FileInputStream fileStream = null;
-
-
-                                fileStream = new FileInputStream(file);
-                                BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
-                                String filename = file.getName();
-
-                                json.put("sessionid", session_id);
-                                json.put("filename", file.getName());
-
-                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                int byteToBeRead = -1;
-                                while ((byteToBeRead = fileBuffer.read()) != -1) {
-                                    baos.write(byteToBeRead);
-                                }
-                                byte[] mybytearray = baos.toByteArray();
-                                json.put("content", mybytearray);
-                                mSocket.emit("payload", json);
-                                FileName.setFilePath("");
-                            } catch (FileNotFoundException e) {
-                                e.printStackTrace();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
                         }
                     }
                 });
@@ -134,7 +244,8 @@ public class FileFragment extends Fragment implements View.OnClickListener{
     public void sendData(JSONObject data) {
         Log.d("json", data.toString());
         mSocket.connect();
-        mSocket.on("decision", onNewMessage);
+        mSocket.on("decision", onPayloadReceived);
+        mSocket.on("filewritten", onFileWritten);
         mSocket.emit("authentication", data);
     }
 
