@@ -1,8 +1,12 @@
 package com.transend.araya.transendio;
 
+import android.app.AlertDialog;
 import android.content.ClipData;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -11,12 +15,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
-import com.transend.araya.transendio.R;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,109 +38,52 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import static android.app.Activity.RESULT_OK;
+import static android.content.ContentValues.TAG;
 import static com.transend.araya.transendio.FileName.zip;
 
 public class FileFragment extends Fragment implements View.OnClickListener{
     private static final int READ_REQUEST_CODE = 42;
+    private static final int BARCODE_REQUEST_CODE = 999;
+    private static final int LOADING_REQUEST_CODE = 888;
 
-    private com.github.nkzawa.socketio.client.Socket mSocket;
-    {
-        try {
-            mSocket = IO.socket("http://transendtest.com");
-            Log.d("connection", "CONNECTED");
-        } catch (URISyntaxException e) {}
-    }
 
     Button chooseFile;
-    @Nullable
+    AlertDialog.Builder builder1;
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view =  inflater.inflate(R.layout.filechoose, null);
 
+
         chooseFile = (Button)view.findViewById(R.id.fileChooser);
+        builder1 = new AlertDialog.Builder(getActivity());
+        builder1.setMessage("File downloaded!");
+        builder1.setCancelable(true);
+
+        builder1.setPositiveButton(
+                "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+//                        txtPercentage.setVisibility(View.INVISIBLE);
+                        dialog.cancel();
+                    }
+                });
         chooseFile.setOnClickListener(this);
+
         Bundle args = getArguments();
-        if (args != null) {
+        if (args != null && args.containsKey("filename")) {
             String fileName = args.getString("filename").toString();
             Log.d("FILENAME", fileName);
             if (fileName != null) {
-                startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), 999);
+                FileName.setFilePath(fileName);
+                startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), BARCODE_REQUEST_CODE);
             }
+            args.clear();
+        }
+        else{
+            Log.d("ARGS", "ARE NULL - FILE");
         }
         return view;
-    }
-
-
-
-    private Emitter.Listener onNewMessage = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        JSONObject data = (JSONObject) args[0];
-                        String message;
-                        String session_id;
-                        try {
-                            message = data.getString("authorisation");
-                            session_id = data.getString("session_id");
-                        } catch (JSONException e) {
-                            return;
-                        }
-
-                        if (message.contains("Authorised")) {
-                            JSONObject sendingJson = new JSONObject();
-                            try {
-                                sendingJson.put("sessionid", session_id);
-                                sendingJson.put("status", true);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            mSocket.emit("sendingstatus", sendingJson);
-
-                            try {
-                                JSONObject json = new JSONObject();
-
-                                File file = new File(FileName.getFilePath());
-                                FileInputStream fileStream = null;
-
-
-                                fileStream = new FileInputStream(file);
-                                BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
-                                String filename = file.getName();
-
-                                json.put("sessionid", session_id);
-                                json.put("filename", file.getName());
-
-                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                int byteToBeRead = -1;
-                                while ((byteToBeRead = fileBuffer.read()) != -1) {
-                                    baos.write(byteToBeRead);
-                                }
-                                byte[] mybytearray = baos.toByteArray();
-                                json.put("content", mybytearray);
-                                mSocket.emit("payload", json);
-                                FileName.setFilePath("");
-                            } catch (FileNotFoundException e) {
-                                e.printStackTrace();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                });
-            }
-        }
-    };
-
-    public void sendData(JSONObject data) {
-        Log.d("json", data.toString());
-        mSocket.connect();
-        mSocket.on("decision", onNewMessage);
-        mSocket.emit("authentication", data);
     }
 
     @Override
@@ -154,7 +102,6 @@ public class FileFragment extends Fragment implements View.OnClickListener{
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == READ_REQUEST_CODE && resultCode == RESULT_OK) {
-
             Uri uri = null;
             if (data != null) {
                 uri = data.getData();
@@ -172,25 +119,33 @@ public class FileFragment extends Fragment implements View.OnClickListener{
                         zip(uriGetter.getInfoFromURIArray(getActivity(), uris), zipfileName);
                     }
                     FileName.setFilePath(zipfileName);
-                    startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), 999);
+                    startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), BARCODE_REQUEST_CODE);
 
                 }
                 catch (Exception e){
                     FileName.setFilePath(uriGetter.getUriRealPath(getActivity(), uri));
-                    startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class),999);
+                    startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), BARCODE_REQUEST_CODE);
                 }
             }
         }
-        if(requestCode == 999 && resultCode == RESULT_OK) {
+        if(requestCode == BARCODE_REQUEST_CODE && resultCode == RESULT_OK) {
             String auth = data.getStringExtra("scanned_data");
             JSONObject json = null;
             try {
                 json = new JSONObject(auth);
-                sendData(json);
+                Intent loadIntent = new Intent();
+                loadIntent.setClass(getActivity(), LoadingPage.class);
+                loadIntent.putExtra("json", json.toString());
+
+                startActivityForResult(loadIntent, LOADING_REQUEST_CODE);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
-    }
 
+        if(requestCode == LOADING_REQUEST_CODE && resultCode == RESULT_OK) {
+            AlertDialog alert11 = builder1.create();
+            alert11.show();
+        }
+    }
 }

@@ -1,11 +1,10 @@
 package com.transend.araya.transendio;
 
-import android.content.ClipData;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,22 +19,15 @@ import com.github.nkzawa.socketio.client.IO;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
+
 
 import static android.app.Activity.RESULT_OK;
-import static android.webkit.URLUtil.isValidUrl;
-import static com.transend.araya.transendio.FileName.zip;
+
 
 public class UrlFragment extends Fragment implements View.OnClickListener{
+
+    private static final int BARCODE_REQUEST_CODE = 999;
 
     private com.github.nkzawa.socketio.client.Socket mSocket;
     {
@@ -56,12 +48,15 @@ public class UrlFragment extends Fragment implements View.OnClickListener{
         sendLink = view.findViewById(R.id.sendLink);
         sendLink.setOnClickListener(this);
         Bundle args = getArguments();
-        if (args != null) {
+        if (args != null && args.containsKey("url")) {
             String url = args.getString("url").toString();
-            if (url != null && isValidUrl(url)) {
+            if (url != null) {
                 linkUrl.setText(url);
                 Log.d("URL", url);
             }
+        }
+        else{
+            Log.d("ARGS", "ARE NULL - URL");
         }
         return view;
     }
@@ -95,13 +90,15 @@ public class UrlFragment extends Fragment implements View.OnClickListener{
 
                             try {
 
-                                String url = linkUrl.getText().toString();
+                                String url = makeUrl(linkUrl.getText().toString());
+                                Log.d("URLHERE", url);
                                 JSONObject json = new JSONObject();
 
                                 json.put("sessionid", session_id);
                                 json.put("url", url);
 
                                 mSocket.emit("payload", json);
+                                linkUrl.getText().clear();
                                 FileName.setFilePath("");
                             } catch (JSONException e) {
                                 e.printStackTrace();
@@ -123,7 +120,7 @@ public class UrlFragment extends Fragment implements View.OnClickListener{
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == 999 && resultCode == RESULT_OK) {
+        if(requestCode == BARCODE_REQUEST_CODE && resultCode == RESULT_OK) {
             String auth = data.getStringExtra("scanned_data");
             JSONObject json = null;
             try {
@@ -138,10 +135,34 @@ public class UrlFragment extends Fragment implements View.OnClickListener{
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.sendLink:
-                if (!linkUrl.getText().toString().matches("")) {
-                    startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), 999);
+                String url = linkUrl.getText().toString();
+
+                if (!url.matches("")) {
+                    url = makeUrl(url);
+                    Log.d("URL", url);
+                    startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), BARCODE_REQUEST_CODE);
+
+                }
+                else {
+                    Snackbar.make(getActivity().findViewById(android.R.id.content),
+                            "Not a valid URL",
+                            Snackbar.LENGTH_SHORT).show();
                 }
                 break;
         }
+    }
+
+    private String makeUrl(String url) {
+        String new_url = url;
+        if ( !url.contains("http") || !url.contains("https")) {
+            new_url = "http://" + url;
+        }
+        return new_url;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
     }
 }

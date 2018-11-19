@@ -102,9 +102,8 @@ public class ScannedBarcodeActivity extends AppCompatActivity {
                 if (barcodes.size() != 0) {
                     intentData = barcodes.valueAt(0).displayValue;
                     Intent intent = new Intent();
-
-                    intent.putExtra("scanned_data", intentData);
                     setResult(RESULT_OK, intent);
+                    intent.putExtra("scanned_data", intentData);
                     finish();
                 }
             }

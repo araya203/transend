@@ -61,6 +61,9 @@
         android:layout_height="50dp"
         android:layout_alignTop="@+id/sendLink"
         android:layout_toStartOf="@+id/sendLink"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:lines="1"
         android:hint="URL here" />
 
     <Button

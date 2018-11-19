@@ -19,7 +19,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar">
         <activity android:name=".MainActivity"
-            android:windowSoftInputMode="stateVisible|adjustPan">
+            android:screenOrientation="portrait"
+        android:windowSoftInputMode="stateVisible|adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -37,6 +38,8 @@
 
         </activity>
         <activity android:name=".ScannedBarcodeActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".LoadingPage"
             android:screenOrientation="portrait"/>
         <meta-data
             android:name="com.google.android.gms.vision.DEPENDENCIES"

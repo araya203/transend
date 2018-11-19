@@ -9,16 +9,31 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import static android.webkit.URLUtil.isValidUrl;
 
-public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener{
+import com.github.nkzawa.socketio.client.IO;
+
+import java.net.URISyntaxException;
+
+
+public class MainActivity extends AppCompatActivity{
 
     public  static final int PERMISSIONS_MULTIPLE_REQUEST = 123;
+
+    public static com.github.nkzawa.socketio.client.Socket mSocket;
+    {
+        try {
+            mSocket = IO.socket("http://transendtest.com");
+            Log.d("connection", "CONNECTED");
+        } catch (URISyntaxException e) {}
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,39 +41,60 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         setContentView(R.layout.activity_main);
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        // define your fragments here
+        final Fragment fileFragment = new FileFragment();
+        final Fragment urlFragment = new UrlFragment();
+        final Fragment cameraFragment = new CameraFragment();
+
+
         BottomNavigationView navigation = findViewById(R.id.navigation);
-        navigation.setOnNavigationItemSelectedListener(this);
+        navigation.setOnNavigationItemSelectedListener(
+                new BottomNavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                        switch (item.getItemId()) {
+                            case R.id.navigation_files:
+                                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                                fragmentTransaction.replace(R.id.fragment_container, fileFragment).commit();
+                                return true;
+                            case R.id.navigation_url:
+                                FragmentTransaction fragmentTransaction2 = fragmentManager.beginTransaction();
+                                fragmentTransaction2.replace(R.id.fragment_container, urlFragment).commit();
+                                return true;
+                            case R.id.navigation_other:
+                                FragmentTransaction fragmentTransaction3 = fragmentManager.beginTransaction();
+                                fragmentTransaction3.replace(R.id.fragment_container, cameraFragment).commit();
+                                return true;
+                        }
+                        return false;
+                    }
+                });
 
         checkPermissions();
         Intent intent = getIntent();
+        Bundle bundle = new Bundle();
+
         if ("text/plain".equals(intent.getType())) {
             UrlFragment fragment = new UrlFragment();
 
             Bundle extras = getIntent().getExtras();
             String url = extras.getString(Intent.EXTRA_TEXT);
-            if (url != null && isValidUrl(url)) {
-                Bundle urlBundle = new Bundle();
-                urlBundle.putString("url", url);
-                fragment.setArguments(urlBundle);
+            if (url != null) {
+                bundle.putString("url", url);
+                fragment.setArguments(bundle);
                 loadFragment(fragment);
-            }
-            else {
-                Snackbar.make(findViewById(android.R.id.content),
-                        "Not a valid URL",
-                        Snackbar.LENGTH_SHORT).show();
-                loadFragment(new FileFragment());
             }
         }
         else {
             FileName.tryFilePathFromAction(getApplicationContext(), intent);
             String fileName = FileName.getFilePath();
-            FileFragment fileFragment = new FileFragment();
             if (fileName != null) {
-                Bundle fileBundle = new Bundle();
-                fileBundle.putString("filename", fileName);
-                fileFragment.setArguments(fileBundle);
+                bundle.putString("filename", fileName);
+                fileFragment.setArguments(bundle);
             }
             loadFragment(fileFragment);
+
         }
     }
 
@@ -142,20 +178,4 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         }
     }
 
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
-        Fragment fragment = null;
-        switch (menuItem.getItemId()) {
-            case R.id.navigation_files:
-                fragment = new FileFragment();
-                break;
-            case R.id.navigation_url:
-                fragment = new UrlFragment();
-                break;
-            case R.id.navigation_other:
-                fragment = new CameraFragment();
-
-        }
-        return loadFragment(fragment);
-    }
 }
