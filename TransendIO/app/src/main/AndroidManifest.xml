@@ -39,6 +39,8 @@
         </activity>
         <activity android:name=".ScannedBarcodeActivity"
             android:screenOrientation="portrait"/>
+        <activity android:name=".LoadingPage"
+            android:screenOrientation="portrait"/>
         <meta-data
             android:name="com.google.android.gms.vision.DEPENDENCIES"
             android:value="barcode" />

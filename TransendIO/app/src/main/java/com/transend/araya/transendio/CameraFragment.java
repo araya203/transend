@@ -1,5 +1,7 @@
 package com.transend.araya.transendio;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -43,9 +45,13 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
     }
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
+    private static final int BARCODE_REQUEST_CODE = 999;
+    private static final int LOADING_REQUEST_CODE = 888;
+
     Uri imageUri;
     String mCameraFileName;
     Button takePhoto;
+    AlertDialog.Builder builder1;
 
     @Nullable
     @Override
@@ -53,6 +59,18 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
         View view = inflater.inflate(R.layout.camerapreview, null);
         takePhoto = view.findViewById(R.id.takepicture);
         takePhoto.setOnClickListener(this);
+        builder1 = new AlertDialog.Builder(getActivity());
+        builder1.setMessage("File downloaded!");
+        builder1.setCancelable(true);
+
+        builder1.setPositiveButton(
+                "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+//                        txtPercentage.setVisibility(View.INVISIBLE);
+                        dialog.cancel();
+                    }
+                });
 
         return view;
     }
@@ -72,17 +90,26 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
             }
             FileName.setFilePath(mCameraFileName);
 
-            startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class),999);
+            startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class),BARCODE_REQUEST_CODE);
         }
-        if(requestCode == 999 && resultCode == RESULT_OK) {
+        if(requestCode == BARCODE_REQUEST_CODE && resultCode == RESULT_OK) {
             String auth = data.getStringExtra("scanned_data");
             JSONObject json = null;
             try {
                 json = new JSONObject(auth);
-                sendData(json);
+                Intent loadIntent = new Intent();
+                loadIntent.setClass(getActivity(), LoadingPage.class);
+                loadIntent.putExtra("json", json.toString());
+
+                startActivityForResult(loadIntent, LOADING_REQUEST_CODE);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+        }
+
+        if(requestCode == LOADING_REQUEST_CODE && resultCode == RESULT_OK) {
+            AlertDialog alert11 = builder1.create();
+            alert11.show();
         }
     }
 
@@ -104,77 +131,6 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
         startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
     }
 
-    private Emitter.Listener onNewMessage = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        JSONObject data = (JSONObject) args[0];
-                        String message;
-                        String session_id;
-                        try {
-                            message = data.getString("authorisation");
-                            session_id = data.getString("session_id");
-                        } catch (JSONException e) {
-                            return;
-                        }
-
-                        if (message.contains("Authorised")) {
-                            JSONObject sendingJson = new JSONObject();
-                            try {
-                                sendingJson.put("sessionid", session_id);
-                                sendingJson.put("status", true);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            mSocket.emit("sendingstatus", sendingJson);
-
-                            try {
-                                JSONObject json = new JSONObject();
-
-                                File file = new File(FileName.getFilePath());
-                                FileInputStream fileStream = null;
-
-
-                                fileStream = new FileInputStream(file);
-                                BufferedInputStream fileBuffer = new BufferedInputStream(fileStream);
-                                String filename = file.getName();
-
-                                json.put("sessionid", session_id);
-                                json.put("filename", file.getName());
-
-                                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                int byteToBeRead = -1;
-                                while ((byteToBeRead = fileBuffer.read()) != -1) {
-                                    baos.write(byteToBeRead);
-                                }
-                                byte[] mybytearray = baos.toByteArray();
-                                json.put("content", mybytearray);
-                                mSocket.emit("payload", json);
-                                FileName.setFilePath("");
-
-                            } catch (FileNotFoundException e) {
-                                e.printStackTrace();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                });
-            }
-        }
-    };
-
-    public void sendData(JSONObject data) {
-        Log.d("json", data.toString());
-        mSocket.connect();
-        mSocket.on("decision", onNewMessage);
-        mSocket.emit("authentication", data);
-    }
 
     @Override
     public void onClick(View v) {
