@@ -78,7 +78,8 @@ def authorise(json):
     session_id = json['sessionid']
     logging.debug("Password: %s", password)
     logging.debug("Session_id: %s", session_id)
-    if sessions[session_id]["password"] in password:
+    sent_password = sessions[session_id]["password"].encode("utf-8")
+    if sent_password in password:
         payload = {"authorisation": "Authorised", "session_id": session_id}
         logging.info("Authorised")
         logging.info("Got request to load")
@@ -94,21 +95,20 @@ def authorise(json):
 
 @socketio.on('payload')
 def handle_content(payload):
+    session_id = payload['sessionid'].encode('utf8')
+    if session_id not in sessions:
+        logging.error("Session Expired: %s", session_id)
+        return
     if "url" in payload:
         url = payload['url']
         logging.info("Got URL")
-        session_id = payload['sessionid'].encode('utf8')
         emit("link", {'url': url}, room=session_id)
         logging.info("Emitted URL %s", url)
     else:
         logging.info("Got request to write payload")
-        session_id = payload['sessionid'].encode('utf8')
         filename = payload['filename'].encode('utf8')
         logging.info("Attempting to write file %s", filename)
         content = payload['content']
-        if session_id not in sessions:
-            logging.error("Session Expired: %s", session_id)
-            return
         download_dir = os.path.join("/home/ec2-user/transend/transend/static/downloads/",session_id)
         if not os.path.exists(download_dir):
             os.makedirs(download_dir)
@@ -120,10 +120,10 @@ def handle_content(payload):
         emit("file", {'session_id': session_id, 'filename': filename}, room=session_id)
         logging.info("Emitted file %s", filename)
         logging.info("Emitted loading is False")
-        del sessions[session_id]
-        logging.info("Deleted session %s", session_id)
-
 	emit("filewritten", {'written':True})
+    del sessions[session_id]
+    logging.info("Deleted session %s", session_id)
+
 
 
 @app.route('/getfile/<session>/<file_name>')
@@ -132,7 +132,7 @@ def get_output_file(session, file_name):
     file_path = file_dir+"/"+file_name
     if not os.path.isfile(file_path):
         logging.error("%s is not a file", file_path)
-        
+ 
     logging.info("Attempting to download %s", file_path)
 
     with open(file_path, 'rb') as f:
