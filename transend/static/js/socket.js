@@ -2,7 +2,6 @@ var ipport = "35.178.176.41";
 var socket = io.connect();
 $(document).ready(function() {
         socket.emit('browserconnect');
-
         $("#qrcodecontainer").append("<a href='#'>Generate another QR code</a>");
 
         socket.on('file', function(filejson) {
@@ -11,6 +10,25 @@ $(document).ready(function() {
                 var request = new XMLHttpRequest();
                 request.open('GET', '/getfile/'+session_id+'/'+filename, true)
                 request.responseType = 'blob';
+                var progressBar = document.getElementById("progress");
+                var display = document.getElementById("display");
+
+                request.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        progressBar.max = e.total;
+                        progressBar.value = e.loaded;
+                        display.innerText = Math.floor((e.loaded / e.total) * 100) + '%';
+                    }
+                };
+                request.onloadstart = function(e) {
+                    $("#qrcodecontainer").hide();
+                    progressBar.value = 0;
+                };
+                request.onloadend = function(e) {
+                    $("#qrcodecontainer").show();
+                    $('display').hide();
+                    progressBar.value = e.loaded;
+                };
 
                 request.onload = function() {
                         if(request.status === 200) {
@@ -24,7 +42,8 @@ $(document).ready(function() {
 
                                 document.body.appendChild(link);
                                 link.click();
-                                 document.body.removeChild(link);
+                                document.body.removeChild(link);
+                                $("#qrcodecontainer").children('img').attr('src', 'static/images/done.jpg');
                         }
                 };
                 request.send();
@@ -50,9 +69,6 @@ $(document).ready(function() {
                 var isloading = loadjson['isloading'];
                 if(isloading == true) {
                         $("#qrcodecontainer").children('img').attr('src', 'static/images/loadinggif.gif');
-                }
-                else {
-                        $("#qrcodecontainer").children('img').attr('src', 'static/images/done.jpg');
                 }
         });
 });

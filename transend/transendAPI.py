@@ -95,36 +95,35 @@ def authorise(json):
 
 @socketio.on('payload')
 def handle_content(payload):
-    session_id = payload['sessionid'].encode('utf8')
-    if session_id not in sessions:
-        logging.error("Session Expired: %s", session_id)
-        return
-    if "url" in payload:
-        url = payload['url']
-        logging.info("Got URL")
-        emit("link", {'url': url}, room=session_id)
-        logging.info("Emitted URL %s", url)
+    if 'sessionid' in payload:
+        session_id = payload['sessionid'].encode('utf8')
+        if session_id not in sessions:
+            logging.error("Session Expired: %s", session_id)
+            return
+        if "url" in payload:
+            url = payload['url']
+            logging.info("Got URL")
+            emit("link", {'url': url}, room=session_id)
+            logging.info("Emitted URL %s", url)
+        else:
+            logging.info("Got request to write payload")
+            filename = payload['filename'].encode('utf8')
+            logging.info("Attempting to write file %s", filename)
+            content = payload['content']
+            download_dir = os.path.join("/home/ec2-user/transend/transend/static/downloads/",session_id)
+            if not os.path.exists(download_dir):
+                os.makedirs(download_dir)
+            fullpath = os.path.join(download_dir, filename)
+            f = open(fullpath, 'w')
+            f.write(content)
+            logging.info("Wrote file successfully")
+            emit("file", {'session_id': session_id, 'filename': filename}, room=session_id)
+            logging.info("Emitted file %s", filename)
+            logging.info("Emitted loading is False")
+        del sessions[session_id]
+        logging.info("Deleted session %s", session_id)
     else:
-        logging.info("Got request to write payload")
-        filename = payload['filename'].encode('utf8')
-        logging.info("Attempting to write file %s", filename)
-        content = payload['content']
-        download_dir = os.path.join("/home/ec2-user/transend/transend/static/downloads/",session_id)
-        if not os.path.exists(download_dir):
-            os.makedirs(download_dir)
-        fullpath = os.path.join(download_dir, filename)
-        f = open(fullpath, 'w')
-        f.write(content)
-        logging.info("Wrote file successfully")
-        emit("loading", {'isloading': False}, room=session_id)
-        emit("file", {'session_id': session_id, 'filename': filename}, room=session_id)
-        logging.info("Emitted file %s", filename)
-        logging.info("Emitted loading is False")
-	emit("filewritten", {'written':True})
-    del sessions[session_id]
-    logging.info("Deleted session %s", session_id)
-
-
+        logging.error("No session in payload")
 
 @app.route('/getfile/<session>/<file_name>')
 def get_output_file(session, file_name):
