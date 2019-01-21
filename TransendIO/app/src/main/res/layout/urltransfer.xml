@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/gradiant">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true">
+
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+
+            <ImageView
+                android:id="@+id/imageBack"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/card1" />
+
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="156dp"
+
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="50dp"
+                android:alpha="0.2"
+                android:src="@drawable/weblogo" />
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="213dp"
+                android:text="Open URL on your browser!"
+                android:textAlignment="center"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+
+        </RelativeLayout>
+
+    </FrameLayout>
+
+    <EditText
+        android:id="@+id/urlText"
+        android:layout_width="229dp"
+        android:layout_height="50dp"
+        android:layout_alignTop="@+id/sendLink"
+        android:layout_toStartOf="@+id/sendLink"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:lines="1"
+        android:hint="URL here" />
+
+    <Button
+        android:id="@+id/sendLink"
+        android:layout_width="109dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="167dp"
+        android:layout_marginEnd="7dp"
+
+
+        android:scaleType="fitXY"
+        android:text="SEND" />
+
+</RelativeLayout>

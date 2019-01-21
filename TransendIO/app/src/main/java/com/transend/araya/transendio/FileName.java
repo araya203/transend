@@ -29,6 +29,8 @@ public class FileName {
         String action = intent.getAction();
         String type = intent.getType();
         if (Intent.ACTION_SEND.equals(action) && type != null) {
+            String uri = intent.getParcelableExtra(Intent.EXTRA_STREAM).toString();
+
             setFilePath(handleSendFile(ctx, intent));
         }
         else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {

@@ -2,7 +2,6 @@ package com.transend.araya.transendio;
 
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -12,145 +11,124 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.StringWriter;
-import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.tika.Tika;
-
-import javax.activation.MimetypesFileTypeMap;
-
 
 public class uriGetter {
     private static String getUriRealPathAboveKitkat(Context ctx, Uri uri)
     {
 
         String ret = "";
-        Log.d("IS SAMSUNG?", Boolean.toString(isSamsungPhoto(uri.toString())));
-//        Log.d("URI to string:", uri.toString());
-//        Log.d("URI getPath:", uri.getPath());
-//        Log.d("URI getAuthority:", uri.getAuthority());
-//        Log.d("URI to getPathSegments:", uri.getPathSegments().toString());
-//        Log.d("getEncodedAuthority:", uri.getEncodedAuthority());
-//        Log.d("getEncodedFragment:", uri.getEncodedFragment());
-//        Log.d("URI to getEncodedPath:", uri.getEncodedPath());
-//        Log.d("URI to getEncodedQuery:", uri.getEncodedQuery());
-//        Log.d("getEncodedSchemeSpecif:", uri.getEncodedSchemeSpecificPart());
-//        Log.d("URI getEncodedUserInfo:", uri.getEncodedUserInfo());
-//        Log.d("URI to getFragment:", uri.getFragment());
-//        Log.d("URI to getHost:", uri.getHost());
-//        Log.d("URI getLastPathSegment:", uri.getLastPathSegment());
-//        Log.d("URI to getQuery:", uri.getQuery());
-//        Log.d("URI to getScheme:", uri.getScheme());
-//        Log.d("getQueryParameterNames:", uri.getQueryParameterNames().toString());
-
-
-
         if(ctx != null && uri != null) {
             Log.d("URI:",uri.getAuthority());
             Log.d("SCHEME:",uri.getScheme());
 
             try {
-                if(isContentUri(uri))
+                if(isGooglePhotoDoc(uri.getAuthority()))
                 {
-                    if(isGooglePhotoDoc(uri.getAuthority()))
-                    {
-                        ret = uri.getLastPathSegment();
-                    }
-                    else if(isGoogleDriveDoc(uri.getAuthority())) {
-                        Cursor cursor = null;
-                        final String column = "_display_name";
-                        final String[] projection = {
-                                column
-                        };
+                    ret = uri.getLastPathSegment();
+                }
+                else if(isGoogleDriveDoc(uri.getAuthority())) {
 
-                        try {
-                            cursor = ctx.getContentResolver().query(uri, projection, null, null, null);
+                    Cursor cursor = null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+                        cursor = ctx.getContentResolver()
+                                .query(uri, null, null, null, null, null);
+                    }
+
+                    try {
+
+                        if (cursor != null && cursor.moveToFirst()) {
+
+                            // Note it's called "Display Name".  This is
+                            // provider-specific, and might not necessarily be the file name.
+
                             Log.d("GOOGLE DRIVE NAME: ", "HERE");
-                            if (cursor != null && cursor.moveToFirst()) {
-                                final int column_index = cursor.getColumnIndexOrThrow(column);
+                                final int column_index = cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME);
                                 ret = makeFileFromContentURI(ctx, uri, cursor.getString(column_index));
                                 Log.d("GOOGLE DRIVE NAME: ", ret);
 
-                            }
-                        } finally {
-                            if (cursor != null)
-                                cursor.close();
                         }
+                    } finally {
+                        if (cursor != null)
+                            cursor.close();
                     }
-                    else {
-                        ret = getImageRealPath(ctx.getContentResolver(), uri, null);
-                    }
-                }else if(isFileUri(uri)) {
-                    ret = uri.getPath();
                 }
-                else if(isDocumentUri(ctx, uri)) {
 
-                    // Get uri related document id.
+                else if (isMediaDoc(uri.getAuthority())) {
                     @SuppressLint("NewApi")
                     String documentId = DocumentsContract.getDocumentId(uri);
+                    String idArr[] = documentId.split(":");
+                    if (idArr.length == 2) {
+                        // First item is document type.
+                        String docType = idArr[0];
 
-                    // Get uri authority.
-                    String uriAuthority = uri.getAuthority();
+                        // Second item is document real id.
+                        String realDocId = idArr[1];
 
-                    if (isMediaDoc(uriAuthority)) {
-                        String idArr[] = documentId.split(":");
-                        if (idArr.length == 2) {
-                            // First item is document type.
-                            String docType = idArr[0];
-
-                            // Second item is document real id.
-                            String realDocId = idArr[1];
-
-                            // Get content uri by document type.
-                            Uri mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                            if ("image".equals(docType)) {
-                                mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                            } else if ("video".equals(docType)) {
-                                mediaContentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-                            } else if ("audio".equals(docType)) {
-                                mediaContentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                            }
-
-                            // Get where clause with real document id.
-                            String whereClause = MediaStore.Images.Media._ID + " = " + realDocId;
-
-                            ret = getImageRealPath(ctx.getContentResolver(), mediaContentUri, whereClause);
+                        // Get content uri by document type.
+                        Uri mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                        if ("image".equals(docType)) {
+                            mediaContentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                        } else if ("video".equals(docType)) {
+                            mediaContentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+                        } else if ("audio".equals(docType)) {
+                            mediaContentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
                         }
 
-                    } else if (isDownloadDoc(uriAuthority)) {
-                        // Build download uri.
-                        Uri downloadUri = Uri.parse("content://downloads/public_downloads");
+                        // Get where clause with real document id.
+                        String whereClause = MediaStore.Images.Media._ID + " = " + realDocId;
 
-                        // Append download document id at uri end.
-                        Uri downloadUriAppendId = ContentUris.withAppendedId(downloadUri, Long.valueOf(documentId));
+                        ret = getImageRealPath(ctx.getContentResolver(), mediaContentUri, whereClause);
+                    }
 
-                        ret = getImageRealPath(ctx.getContentResolver(), downloadUriAppendId, null);
+                }
 
-                    } else if (isExternalStoreDoc(uriAuthority)) {
-                        String idArr[] = documentId.split(":");
-                        if (idArr.length == 2) {
-                            String type = idArr[0];
-                            String realDocId = idArr[1];
+                else if (isDownloadDoc(uri.getAuthority())) {
+                    Log.d("DownloadDOC:", "HERE");
+                    Cursor c = ctx.getContentResolver().query(uri, null, null, null, null);
+                    if (c != null && c.moveToFirst()) {
+                        int id = c.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                        if (id != -1) {
+                            ret = makeFileFromContentURI(ctx, uri, c.getString(id));
 
-                            if ("primary".equalsIgnoreCase(type)) {
-                                ret = Environment.getExternalStorageDirectory() + "/" + realDocId;
-                            }
                         }
                     }
+
+
+//                    ret = getImageRealPath(ctx.getContentResolver(), uri, null);
+
+                }
+
+                else if (isExternalStoreDoc(uri.getAuthority())) {
+                    @SuppressLint("NewApi")
+                    String documentId = DocumentsContract.getDocumentId(uri);
+                    String idArr[] = documentId.split(":");
+                    if (idArr.length == 2) {
+                        String type = idArr[0];
+                        String realDocId = idArr[1];
+
+                        if ("primary".equalsIgnoreCase(type)) {
+                            ret = Environment.getExternalStorageDirectory() + "/" + realDocId;
+                        }
+                    }
+                }
+
+                else {
+                    ret = getImageRealPath(ctx.getContentResolver(), uri, null);
                 }
             }
             catch (IllegalStateException e) {
@@ -199,6 +177,59 @@ public class uriGetter {
             e.printStackTrace();
         }
         return ret;
+    }
+
+    public static Uri bitmapToUriConverter(Context ctx, Bitmap mBitmap) {
+        Uri uri = null;
+        try {
+            final BitmapFactory.Options options = new BitmapFactory.Options();
+            // Calculate inSampleSize
+            options.inSampleSize = calculateInSampleSize(options, 100, 100);
+
+            // Decode bitmap with inSampleSize set
+            options.inJustDecodeBounds = false;
+            Bitmap newBitmap = Bitmap.createScaledBitmap(mBitmap, 200, 200,
+                    true);
+            File file = new File(ctx.getFilesDir(), "Image"
+                    + new Random().nextInt() + ".jpeg");
+            FileOutputStream out = ctx.openFileOutput(file.getName(),
+                    Context.MODE_PRIVATE);
+            newBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+            //get absolute path
+            String realPath = file.getAbsolutePath();
+            File f = new File(realPath);
+            uri = Uri.fromFile(f);
+
+        } catch (Exception e) {
+            Log.e("Your Error Message", e.getMessage());
+        }
+        return uri;
+    }
+
+
+    public static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
     }
 
     /* Check whether this uri represent a document or not. */
@@ -262,7 +293,7 @@ public class uriGetter {
     {
         boolean ret = false;
 
-        if("com.google.android.apps.docs.storage.legacy".equals(uriAuthority))
+        if(uriAuthority.contains("com.google.android.apps.docs.storage"))
         {
             ret = true;
         }
