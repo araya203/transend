@@ -15,5 +15,9 @@
         android:id="@+id/navigation_other"
         android:icon="@drawable/ic_camera_alt_black_24dp"
         android:title="Send Photo"></item>
+    <item
+        android:id="@+id/navigation_receive"
+        android:icon="@drawable/ic_get_app_black_24dp"
+        android:title="Receive File"></item>
 
 </menu>
