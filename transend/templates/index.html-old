@@ -1,0 +1,10 @@
+
+{% extends "template.html" %}
+    {%block title %}Transend - Scan{% endblock %}
+    {% block content %}
+    <h1 class="hero-title h2-mobile mt-0 is-revealing">Scan the QR Code to send!</h1>
+    <div id="qrcodecontainer"><img></img></div>
+    <progress id="progress" value="0"></progress>
+    <span id="display"></span>
+
+    {% endblock %}

@@ -1,8 +1,26 @@
 var ipport = "35.178.176.41";
 var socket = io.connect();
 $(document).ready(function() {
-        socket.emit('browserconnect');
         $("#qrcodecontainer").append("<a href='#'>Generate another QR code</a>");
+	$(function() {
+                $('#send_to_phone_submit').click(function() {
+                    var form_data = new FormData($('#upload-file')[0]);
+                    console.log(form_data);
+                    $.ajax({
+                        type: 'POST',
+                        url: '/uploader',
+                        data: form_data + "&session_id=" + socket.io.engine.id,
+                        contentType: false,
+                        cache: false,
+                        processData: false,
+                        success: function(data) {
+				console.log(socket.io.engine.id);	
+        			socket.emit('generate_qr_phone', data);
+                                console.log(data);
+                        },
+                    });
+                });
+        });
 
         socket.on('file', function(filejson) {
                 var filename = filejson['filename'];
@@ -48,10 +66,19 @@ $(document).ready(function() {
                 };
                 request.send();
         });
-
-        $("a").on('click', function(event) {
+        $('input:file').change(
+            function(){
+                if ($(this).val()) {
+                    $('#send_to_phone_submit').show();
+                    // or, as has been pointed out elsewhere:
+                    //                     // $('input:submit').removeAttr('disabled'); 
+                } 
+            });
+	
+       $("#topcbutton").on('click', function(event) {
+		 console.log("CLICKED");
                  event.preventDefault();
-                 socket.emit('browserconnect');
+                 socket.emit('generate_qr_pc');
         });
 
         socket.on('link', function(urljson) {
@@ -62,7 +89,14 @@ $(document).ready(function() {
         socket.on('qrpath', function(qrjson) {
                 var id = socket.io.engine.id;
                 var qrpath = qrjson['QR'];
-                $("#qrcodecontainer").children('img').attr('src', qrpath);
+                var direction = qrjson['direction'];
+		if (direction == "to_pc"){
+	                $("#qrcodecontainer").children('img').attr('src', qrpath);
+		}
+		else {
+			console.log("TO_MOB");
+	                $("#qrcodecontainer_mob").children('img').attr('src', qrpath);
+		}	
         });
 
         socket.on('loading', function(loadjson) {
