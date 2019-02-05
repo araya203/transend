@@ -40,7 +40,7 @@ public class LoadingPage extends Activity implements View.OnClickListener{
     Button OKbutton;
     ProgressBar progressBar;
     TextView statusMessage;
-
+    int phoneSession = 123456;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -206,8 +206,8 @@ public class LoadingPage extends Activity implements View.OnClickListener{
         Log.d("json", data.toString());
         Log.d("HERE5", "OVERHERE");
         MainActivity.mSocket.connect();
-        MainActivity.mSocket.on("decision", onPayloadReceived);
         MainActivity.mSocket.emit("authentication", data);
+        MainActivity.mSocket.on("decision", onPayloadReceived);
         MainActivity.mSocket.on("filewritten", onFileWritten);
     }
 
@@ -223,6 +223,7 @@ public class LoadingPage extends Activity implements View.OnClickListener{
                         boolean written;
                         try {
                             written = data.getBoolean("written");
+
                         } catch (JSONException e) {
                             return;
                         }

@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity{
         final Fragment fileFragment = new FileFragment();
         final Fragment urlFragment = new UrlFragment();
         final Fragment cameraFragment = new CameraFragment();
+        final Fragment receiveFragment = new ReceiveFragment();
+
 
 
         BottomNavigationView navigation = findViewById(R.id.navigation);
@@ -54,17 +56,21 @@ public class MainActivity extends AppCompatActivity{
                     @Override
                     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                         switch (item.getItemId()) {
-                            case R.id.navigation_files:
+                            case R.id.navigation_receive:
                                 FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                                fragmentTransaction.replace(R.id.fragment_container, fileFragment).commit();
+                                fragmentTransaction.replace(R.id.fragment_container, receiveFragment).commit();
+                                return true;
+                            case R.id.navigation_files:
+                                FragmentTransaction fragmentTransaction2 = fragmentManager.beginTransaction();
+                                fragmentTransaction2.replace(R.id.fragment_container, fileFragment).commit();
                                 return true;
                             case R.id.navigation_url:
-                                FragmentTransaction fragmentTransaction2 = fragmentManager.beginTransaction();
-                                fragmentTransaction2.replace(R.id.fragment_container, urlFragment).commit();
+                                FragmentTransaction fragmentTransaction3 = fragmentManager.beginTransaction();
+                                fragmentTransaction3.replace(R.id.fragment_container, urlFragment).commit();
                                 return true;
                             case R.id.navigation_other:
-                                FragmentTransaction fragmentTransaction3 = fragmentManager.beginTransaction();
-                                fragmentTransaction3.replace(R.id.fragment_container, cameraFragment).commit();
+                                FragmentTransaction fragmentTransaction4 = fragmentManager.beginTransaction();
+                                fragmentTransaction4.replace(R.id.fragment_container, cameraFragment).commit();
                                 return true;
                         }
                         return false;
@@ -118,15 +124,18 @@ public class MainActivity extends AppCompatActivity{
     @SuppressLint("NewApi")
     private void invokePermissionCheck() {
         if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) +
-                checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                checkSelfPermission(Manifest.permission.CAMERA) + checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 
             if (shouldShowRequestPermissionRationale
                     (Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
                     shouldShowRequestPermissionRationale
-                            (Manifest.permission.CAMERA)) {
+                            (Manifest.permission.CAMERA) ||
+                    shouldShowRequestPermissionRationale
+                            (Manifest.permission.READ_EXTERNAL_STORAGE)
+                    ) {
 
                 Snackbar.make(findViewById(android.R.id.content),
-                        "Please Grant Permissions to upload profile photo",
+                        "Please Grant Permissions",
                         Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
                         new View.OnClickListener() {
                             @SuppressLint("NewApi")
@@ -134,14 +143,14 @@ public class MainActivity extends AppCompatActivity{
                             public void onClick(View v) {
                                 requestPermissions(
                                         new String[]{Manifest.permission
-                                                .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                                                .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE},
                                         PERMISSIONS_MULTIPLE_REQUEST);
                             }
                         }).show();
             } else {
                 requestPermissions(
                         new String[]{Manifest.permission
-                                .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                                .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE},
                         PERMISSIONS_MULTIPLE_REQUEST);
             }
         }
@@ -156,8 +165,10 @@ public class MainActivity extends AppCompatActivity{
                 if (grantResults.length > 0) {
                     boolean cameraPermission = grantResults[1] == PackageManager.PERMISSION_GRANTED;
                     boolean writeExternalFile = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    boolean readExternalFile = grantResults[2] == PackageManager.PERMISSION_GRANTED;
 
-                    if (!(writeExternalFile && cameraPermission)) {
+
+                    if (!(writeExternalFile && cameraPermission && readExternalFile)) {
                         Snackbar.make(findViewById(android.R.id.content),
                                 "Please grant permissions be able to use this app properly",
                                 Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
@@ -167,7 +178,7 @@ public class MainActivity extends AppCompatActivity{
                                     public void onClick(View v) {
                                         requestPermissions(
                                                 new String[]{Manifest.permission
-                                                        .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA},
+                                                        .WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE},
                                                 PERMISSIONS_MULTIPLE_REQUEST);
                                     }
                                 }).show();
