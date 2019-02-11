@@ -1,15 +1,15 @@
 var ipport = "35.178.176.41";
 var socket = io.connect();
 $(document).ready(function() {
-        $("#qrcodecontainer").append("<a href='#'>Generate another QR code</a>");
 	$(function() {
                 $('#send_to_phone_submit').click(function() {
+		    $("#qrcodecontainer_mob").show();
                     var form_data = new FormData($('#upload-file')[0]);
                     console.log(form_data);
                     $.ajax({
                         type: 'POST',
-                        url: '/uploader',
-                        data: form_data + "&session_id=" + socket.io.engine.id,
+                        url: '/uploader/'+socket.io.engine.id,
+                        data: form_data,
                         contentType: false,
                         cache: false,
                         processData: false,
@@ -19,6 +19,7 @@ $(document).ready(function() {
                                 console.log(data);
                         },
                     });
+   		    $('#upload-file')[0].reset();
                 });
         });
 
@@ -76,9 +77,17 @@ $(document).ready(function() {
             });
 	
        $("#topcbutton").on('click', function(event) {
-		 console.log("CLICKED");
+		 console.log("CLICKED TO PC");
                  event.preventDefault();
                  socket.emit('generate_qr_pc');
+		 document.getElementById("progress").value = "0";
+        });
+
+       $("#tophonebutton").on('click', function(event) {
+		 console.log("CLICKED TO MOB");
+                 event.preventDefault();
+		 $("#qrcodecontainer_mob").hide();
+   		 $('#upload-file')[0].reset();
         });
 
         socket.on('link', function(urljson) {
@@ -91,12 +100,20 @@ $(document).ready(function() {
                 var qrpath = qrjson['QR'];
                 var direction = qrjson['direction'];
 		if (direction == "to_pc"){
+			console.log("HERE");
 	                $("#qrcodecontainer").children('img').attr('src', qrpath);
 		}
 		else {
 			console.log("TO_MOB");
 	                $("#qrcodecontainer_mob").children('img').attr('src', qrpath);
 		}	
+        });
+
+	socket.on('scanned', function(loadjson) {
+                var isScanned = loadjson['scanned'];
+                if(isScanned == true) {
+                        $("#qrcodecontainer_mob").children('img').attr('src', 'static/images/done.jpg');
+                }
         });
 
         socket.on('loading', function(loadjson) {

@@ -25,7 +25,7 @@ sys.setdefaultencoding("utf8")
 conf = read_properties_file(os.path.join('transend/transend/static/config'))
 ip = conf["ip_address"]
 port = conf["port"]
-UPLOAD_FOLDER = '/home/ec2-user/transend/transend/static/fileuploads'
+UPLOAD_FOLDER = '/home/ec2-user/transend/transend/static/fileuploads/'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
@@ -88,15 +88,13 @@ def generate_qr_pc(session_id):
     img.save("/home/ec2-user/transend/transend/"+qr_path)
     emit("qrpath", {'QR': qr_path, 'direction': "to_pc"}, room=session_id, broadcast=True)
 	
-    #logging.info("Emitted QR path: %s on session_id: %s", qr_path, session_id)
-    print("Emitted QR path: %s on session_id: %s", qr_path, session_id)
+    logging.info("Emitted QR path: %s on session_id: %s", qr_path, session_id)
 
 def generate_qr_phone(session_id, data):
     qr_name = id_generator()
     qr_path = make_qrpath(qr_name)
     set_qrpath(qr_name)
     passwd = id_generator()
-    print("DATA", data)
     if session_id in sessions:
         qr_to_delete = sessions[session_id]["qr"]
         os.remove("/home/ec2-user/transend/transend/"+qr_to_delete)
@@ -108,18 +106,17 @@ def generate_qr_phone(session_id, data):
     img.save("/home/ec2-user/transend/transend/"+qr_path)
     emit("qrpath", {'QR': qr_path, 'direction': "to_phone"}, room=session_id, broadcast=True)
         
-    #logging.info("Emitted QR path: %s on session_id: %s", qr_path, session_id)
-    print("Emitted QR path: %s on session_id: %s", qr_path, session_id)
+    logging.info("Emitted QR path: %s on session_id: %s", qr_path, session_id)
 
 @socketio.on('authentication_phone')
 def authorise_phone(json):
     password = json['password']
     session_id = json['sessionid']
     filename = json['filename']
+    emit("scanned", {'scanned':True}, room=session_id, broadcast=True)
     size = json['size']
-    updir = os.path.join(basedir, app.config['UPLOAD_FOLDER'], str(session_id))
-    if not os.path.exists(updir):
-                os.makedirs(updir)
+    filedir = app.config['UPLOAD_FOLDER'] + session_id
+    updir = os.path.join(basedir, filedir)
     file_dir = os.path.join(updir, filename)
     sent_password = sessions[session_id]["password"].encode("utf-8")
     if sent_password in password:
@@ -127,6 +124,10 @@ def authorise_phone(json):
 	    filestr = f.read()
 	    base64file = base64.encodestring(filestr)
             emit("receivefile", {'filebytes': base64file , 'size': size, 'filename': filename})
+    shutil.rmtree(updir)
+    logging.info("Deleted %s", file_dir)
+#    os.remove("/home/ec2-user/transend/transend/"+qrpath)
+#    logging.info("Deleted %s", qrpath) 
 
 
 @socketio.on('authentication')
@@ -176,21 +177,12 @@ def handle_content(payload):
             logging.info("Wrote file successfully")
             emit("file", {'session_id': session_id, 'filename': filename}, room=session_id)
             logging.info("Emitted file %s", filename)
-            logging.info("Emitted loading is False")
-        del sessions[session_id]
-        logging.info("Deleted session %s", session_id)
+	    emit("filewritten", {'written':True})
+#        del sessions[session_id]
+#        logging.info("Deleted session %s", session_id)
     else:
         logging.error("No session in payload")
 
-
-@socketio.on('receive')
-def send_file(payload):
-    if 'sessionid' in payload:
-        session_id = payload['sessionid'].encode('utf8')
-        if session_id not in sessions:
-            logging.error("Session Expired: %s", session_id)
-            return
-    logging.info("Got request to send payload")
 
 @app.route('/getfile/<session>/<file_name>')
 def get_output_file(session, file_name):
@@ -209,8 +201,8 @@ def get_output_file(session, file_name):
     logging.info("Downloaded Successfully")
     shutil.rmtree(file_dir)
     logging.info("Deleted %s", file_path)
-    os.remove("/home/ec2-user/transend/transend/"+qrpath)
-    logging.info("Deleted %s", qrpath)
+#    os.remove("/home/ec2-user/transend/transend/"+qrpath)
+#    logging.info("Deleted %s", qrpath)
     return resp
 
 @app.route('/', methods=['GET', 'POST'])
@@ -225,14 +217,17 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/uploader', methods = ['POST'])
-def upldfile():
+@app.route('/uploader/<session>', methods = ['POST'])
+def upldfile(session):
     if request.method == 'POST':
         files = request.files['file']
-	print(files)
-        if files and allowed_file(files.filename):
+        if files:
             filename = secure_filename(files.filename)
-	    updir = os.path.join(basedir, app.config['UPLOAD_FOLDER'])
+	    filedir = app.config['UPLOAD_FOLDER'] + session
+	    updir = os.path.join(basedir, filedir)
+    	    if not os.path.exists(updir):
+            	os.makedirs(updir)
+	    print(updir)
             files.save(os.path.join(updir, filename))
             file_size = os.path.getsize(os.path.join(updir, filename))
 
