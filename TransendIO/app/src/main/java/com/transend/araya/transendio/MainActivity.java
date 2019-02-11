@@ -17,9 +17,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-
 import com.github.nkzawa.socketio.client.IO;
-
 import java.net.URISyntaxException;
 
 

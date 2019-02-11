@@ -16,18 +16,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -98,7 +92,7 @@ public class CameraFragment extends Fragment implements View.OnClickListener{
             try {
                 json = new JSONObject(auth);
                 Intent loadIntent = new Intent();
-                loadIntent.setClass(getActivity(), LoadingPage.class);
+                loadIntent.setClass(getActivity(), SendLoadingPage.class);
                 loadIntent.putExtra("json", json.toString());
 
                 startActivityForResult(loadIntent, LOADING_REQUEST_CODE);

@@ -3,7 +3,6 @@ package com.transend.araya.transendio;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

@@ -13,7 +13,6 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Log;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -52,15 +51,8 @@ public class uriGetter {
                     try {
 
                         if (cursor != null && cursor.moveToFirst()) {
-
-                            // Note it's called "Display Name".  This is
-                            // provider-specific, and might not necessarily be the file name.
-
-                            Log.d("GOOGLE DRIVE NAME: ", "HERE");
                                 final int column_index = cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME);
                                 ret = makeFileFromContentURI(ctx, uri, cursor.getString(column_index));
-                                Log.d("GOOGLE DRIVE NAME: ", ret);
-
                         }
                     } finally {
                         if (cursor != null)

@@ -79,15 +79,6 @@ public class UrlFragment extends Fragment implements View.OnClickListener{
                         }
 
                         if (message.contains("Authorised")) {
-                            JSONObject sendingJson = new JSONObject();
-                            try {
-                                sendingJson.put("sessionid", session_id);
-                                sendingJson.put("status", true);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            mSocket.emit("sendingstatus", sendingJson);
-
                             try {
 
                                 String url = makeUrl(linkUrl.getText().toString());

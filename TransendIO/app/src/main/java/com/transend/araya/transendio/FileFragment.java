@@ -1,44 +1,25 @@
 package com.transend.araya.transendio;
 
-import android.app.AlertDialog;
+import android.annotation.SuppressLint;
 import android.content.ClipData;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.util.Log;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-
-import com.github.nkzawa.emitter.Emitter;
-import com.github.nkzawa.socketio.client.IO;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-
 import static android.app.Activity.RESULT_OK;
-import static android.content.ContentValues.TAG;
 import static com.transend.araya.transendio.FileName.zip;
 
 public class FileFragment extends Fragment implements View.OnClickListener{
@@ -46,9 +27,7 @@ public class FileFragment extends Fragment implements View.OnClickListener{
     private static final int BARCODE_REQUEST_CODE = 999;
     private static final int LOADING_REQUEST_CODE = 888;
 
-
     Button chooseFile;
-    AlertDialog.Builder builder1;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -56,32 +35,17 @@ public class FileFragment extends Fragment implements View.OnClickListener{
 
 
         chooseFile = (Button)view.findViewById(R.id.fileChooser);
-        builder1 = new AlertDialog.Builder(getActivity());
-        builder1.setMessage("File downloaded!");
-        builder1.setCancelable(true);
 
-        builder1.setPositiveButton(
-                "OK",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-//                        txtPercentage.setVisibility(View.INVISIBLE);
-                        dialog.cancel();
-                    }
-                });
         chooseFile.setOnClickListener(this);
 
         Bundle args = getArguments();
         if (args != null && args.containsKey("filename")) {
             String fileName = args.getString("filename").toString();
-            Log.d("FILENAME", fileName);
             if (fileName != null) {
                 FileName.setFilePath(fileName);
                 startActivityForResult(new Intent(getActivity(), ScannedBarcodeActivity.class), BARCODE_REQUEST_CODE);
             }
             args.clear();
-        }
-        else{
-            Log.d("ARGS", "ARE NULL - FILE");
         }
         return view;
     }
@@ -134,7 +98,7 @@ public class FileFragment extends Fragment implements View.OnClickListener{
             try {
                 json = new JSONObject(auth);
                 Intent loadIntent = new Intent();
-                loadIntent.setClass(getActivity(), LoadingPage.class);
+                loadIntent.setClass(getActivity(), SendLoadingPage.class);
                 loadIntent.putExtra("json", json.toString());
 
                 startActivityForResult(loadIntent, LOADING_REQUEST_CODE);
@@ -144,8 +108,16 @@ public class FileFragment extends Fragment implements View.OnClickListener{
         }
 
         if(requestCode == LOADING_REQUEST_CODE && resultCode == RESULT_OK) {
-            AlertDialog alert11 = builder1.create();
-            alert11.show();
+            Snackbar.make(getActivity().findViewById(android.R.id.content),
+                    "File Sent",
+                    Snackbar.LENGTH_INDEFINITE).setAction("OK",
+                    new View.OnClickListener() {
+                        @SuppressLint("NewApi")
+                        @Override
+                        public void onClick(View v) {
+
+                        }
+                    }).show();
         }
     }
 }
