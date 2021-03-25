@@ -45,7 +45,7 @@ python-dateutil==2.6.0
 python-engineio==2.3.2
 python-socketio==2.0.0
 pyxattr==0.5.1
-PyYAML==3.10
+PyYAML==5.4
 qrcode==6.0
 repoze.lru==0.4
 requests==2.6.0
