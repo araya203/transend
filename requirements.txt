@@ -54,7 +54,7 @@ s3transfer==0.1.12
 simplejson==3.2.0
 six==1.9.0
 urlgrabber==3.10
-urllib3==1.10.2
+urllib3==1.26.5
 virtualenv==16.1.0
 Werkzeug==0.14.1
 yum-langpacks==0.4.2
